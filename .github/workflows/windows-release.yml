@@ -36,7 +36,8 @@ jobs:
 
   windows-release:
     needs: macos-check
-    runs-on: windows-2022
+    # The capture source uses WinRT metadata introduced in Windows build 26100.
+    runs-on: windows-2025
     timeout-minutes: 40
     permissions:
       contents: write
