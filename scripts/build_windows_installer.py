@@ -77,7 +77,8 @@ def main():
     runtime.mkdir(exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix="installer-build-", dir=runtime))
     script = work / "ForeverAI.iss"
-    script.write_bytes(subprocess.check_output(["git", "show", actual + ":installer/ForeverAI.iss"], cwd=root))
+    source_script = subprocess.check_output(["git", "show", actual + ":installer/ForeverAI.iss"], cwd=root)
+    script.write_text(source_script.decode("utf-8-sig"), encoding="utf-8-sig")
     result = subprocess.run([str(args.iscc.resolve()), "/Qp", "/DBundleDir=" + str(app),
                              "/DAppVersion=" + version, "/DOutputDir=" + str(output), str(script)],
                             cwd=root, capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)

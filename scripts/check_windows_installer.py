@@ -19,11 +19,9 @@ def main():
     work = Path(tempfile.mkdtemp(prefix="forever-installer-check-"))
     client = work / "synthetic client 中文"
     addons = client / "Interface/AddOns"
-    addons.mkdir(parents=True)
+    client.mkdir()
     (client / "Wow.exe").write_bytes(b"Synthetic marker; never executable or launched.")
     unrelated = addons / "OtherAddon/keep.txt"
-    unrelated.parent.mkdir()
-    unrelated.write_bytes(b"unrelated addon")
     destination = work / "companion application"
     checks = []
 
@@ -49,7 +47,18 @@ def main():
     (missing_exe / "Interface").mkdir(parents=True)
     install("reject-missing-game-executable", game=missing_exe, success=False)
     assert not destination.exists()
-    install("fresh-install")
+    file_interface = work / "invalid-interface-file"
+    file_interface.mkdir()
+    (file_interface / "Wow.exe").write_bytes(b"Synthetic marker")
+    (file_interface / "Interface").write_bytes(b"This file must be preserved")
+    install("reject-interface-file", game=file_interface, success=False)
+    assert (file_interface / "Interface").read_bytes() == b"This file must be preserved"
+    assert not destination.exists()
+    assert not (client / "Interface").exists()
+    install("fresh-install-creates-interface")
+    assert addons.is_dir()
+    unrelated.parent.mkdir()
+    unrelated.write_bytes(b"unrelated addon")
     verify_addon()
     for original in args.bundle.rglob("*"):
         if original.is_file():

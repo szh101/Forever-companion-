@@ -56,12 +56,12 @@ en.GameTitle=Choose your Forever client
 zhCN.GameTitle=选择 Forever 游戏客户端
 en.GameDescription=Select the client folder you actually launch.
 zhCN.GameDescription=请选择你实际启动的游戏客户端文件夹。
-en.GameHint=Choose the folder containing Wow*.exe and Interface, not Interface\AddOns. Existing ForeverAI files are preserved in Interface\ForeverAI-backups. Other AddOns are left alone.
-zhCN.GameHint=选择包含 Wow*.exe 和 Interface 的文件夹，不要选择 Interface\AddOns。已有 ForeverAI 插件会备份到 Interface\ForeverAI-backups，其他插件不会改动。
+en.GameHint=Choose the folder containing Wow*.exe, not Interface\AddOns. Setup creates Interface\AddOns if needed. Existing ForeverAI files are preserved in Interface\ForeverAI-backups. Other AddOns are left alone.
+zhCN.GameHint=选择包含 Wow*.exe 的文件夹，不要选择 Interface\AddOns。安装程序会按需创建 Interface\AddOns。已有 ForeverAI 插件会备份到 Interface\ForeverAI-backups，其他插件不会改动。
 en.GameLabel=Game client folder:
 zhCN.GameLabel=游戏客户端文件夹：
-en.InvalidGame=Choose an existing local client folder containing Wow*.exe and an Interface folder. Linked folders and network paths are not supported. You can go Back and skip the AddOn.
-zhCN.InvalidGame=请选择包含 Wow*.exe 和 Interface 文件夹的本地游戏目录。不支持链接文件夹或网络路径。也可返回上一步并取消安装游戏插件。
+en.InvalidGame=Choose an existing local client folder containing Wow*.exe. The Interface path must be a folder or not exist yet. Linked folders and network paths are not supported. You can go Back and skip the AddOn.
+zhCN.InvalidGame=请选择包含 Wow*.exe 的本地游戏目录。Interface 路径必须是文件夹或尚未创建。不支持链接文件夹或网络路径。也可返回上一步并取消安装游戏插件。
 en.AddonFailed=The AddOn could not be installed. Check write access to the selected client folder. Existing files are preserved; if a backup was made, it is under Interface\ForeverAI-backups. You can install the AddOn manually from the Companion's addon\ForeverAI folder.
 zhCN.AddonFailed=游戏插件安装失败。请检查所选客户端目录的写入权限。原有文件会保留；如已创建备份，可在 Interface\ForeverAI-backups 中找到。也可将桌面助手目录中的 addon\ForeverAI 手动安装到游戏中。
 en.FinishHint=Open Forever AI from the Start menu or desktop shortcut. Choose your own AI connection in Settings. For a first AddOn installation, restart the game yourself and enable Forever AI | Snapshot; then type /fai. Uninstalling the Companion keeps your game AddOn and its backups.
@@ -119,7 +119,7 @@ begin
   Result := False;
   if not SafeDirectoryPath(Path) then Exit;
   Path := RemoveBackslashUnlessRoot(ExpandFileName(Path));
-  if not DirExists(Path + '\Interface') then Exit;
+  if not DirExists(Path) then Exit;
   if not SafeDirectoryPath(Path + '\Interface\AddOns\ForeverAI') then Exit;
   if not SafeDirectoryPath(Path + '\Interface\ForeverAI-backups') then Exit;
   HasExe := False;
@@ -195,6 +195,8 @@ begin
   InterfaceDir := Client + '\Interface';
   Target := InterfaceDir + '\AddOns\ForeverAI';
   Backups := InterfaceDir + '\ForeverAI-backups';
+  if not ForceDirectories(InterfaceDir) or not SafeDirectoryPath(InterfaceDir) then
+    RaiseException(CustomMessage('AddonFailed'));
   Stage := UniqueDirectory(InterfaceDir, 'ForeverAI-install-');
   Backup := '';
   if not ForceDirectories(Stage) or not SafeDirectoryPath(Stage) then

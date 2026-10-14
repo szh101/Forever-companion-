@@ -35,9 +35,19 @@ def artifact_stream(path):
         kernel.CreateFileW.restype = w.HANDLE
         kernel.GetFinalPathNameByHandleW.argtypes = [w.HANDLE, w.LPWSTR, w.DWORD, w.DWORD]
         kernel.GetFinalPathNameByHandleW.restype = w.DWORD
+        kernel.GetLongPathNameW.argtypes = [w.LPCWSTR, w.LPWSTR, w.DWORD]
+        kernel.GetLongPathNameW.restype = w.DWORD
         kernel.CloseHandle.argtypes = [w.HANDLE]
         kernel.CloseHandle.restype = w.BOOL
         expected = os.path.abspath(path)
+        # TEMP and other Windows paths can contain legitimate 8.3 aliases.
+        # Expand their spelling without resolving junction/symlink targets:
+        # Path.resolve() would hide a redirection from the handle check below.
+        long_path = ctypes.create_unicode_buffer(32768)
+        count = kernel.GetLongPathNameW(expected, long_path, len(long_path))
+        if not count or count >= len(long_path):
+            raise OSError("Cannot verify generated artifact path spelling")
+        expected = long_path.value
         handle = kernel.CreateFileW(expected, 0x80000000, 1, None, 3, 0x00200000, None)
         if handle == ctypes.c_void_p(-1).value:
             raise OSError(ctypes.get_last_error(), "Cannot open generated artifact")

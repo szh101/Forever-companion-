@@ -124,6 +124,38 @@ class WindowsRuntimeTests(unittest.TestCase):
             os.link(folder / "plain.png", folder / "hard.png")
             self.assertEqual(generated_artifacts(root, thread, 0), [])
 
+    def test_short_path_artifact_root_preserves_file_and_link_checks(self):
+        import ctypes
+        from ctypes import wintypes as w
+        import _winapi
+        thread = "00000000-0000-0000-0000-000000000001"
+        with tempfile.TemporaryDirectory(prefix="forever-long-artifact-fixture-") as base:
+            root = Path(base)
+            folder = root / "generated_images" / thread
+            folder.mkdir(parents=True)
+            picture = folder / "plain.png"
+            picture.write_bytes(png())
+            kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel.GetShortPathNameW.argtypes = [w.LPCWSTR, w.LPWSTR, w.DWORD]
+            kernel.GetShortPathNameW.restype = w.DWORD
+            short = ctypes.create_unicode_buffer(32768)
+            count = kernel.GetShortPathNameW(str(root), short, len(short))
+            self.assertGreater(count, 0)
+            self.assertLess(count, len(short))
+            if os.path.normcase(short.value) == os.path.normcase(str(root)):
+                self.skipTest("This fixture volume does not create 8.3 path aliases")
+            alias = Path(short.value)
+            self.assertEqual(len(generated_artifacts(alias, thread, 0)), 1)
+            with artifact_stream(alias / "generated_images" / thread / "plain.png") as stream:
+                self.assertEqual(stream.read(), png())
+            os.link(picture, folder / "hard.png")
+            self.assertEqual(generated_artifacts(alias, thread, 0), [])
+            linked = root / "linked-pictures"
+            _winapi.CreateJunction(str(folder), str(linked))
+            with self.assertRaises(OSError):
+                with artifact_stream(alias / "linked-pictures" / "plain.png"):
+                    self.fail("A junction below a short path was accepted")
+
     def test_junction_directory_is_rejected_before_read(self):
         import _winapi
         thread = "00000000-0000-0000-0000-000000000001"
