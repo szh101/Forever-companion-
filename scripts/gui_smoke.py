@@ -23,6 +23,25 @@ def assert_english_controls(root):
             assert not any("\u3400" <= char <= "\u9fff" for char in label), (str(widget), label)
 
 
+def wait_for_job(root, app, timeout=5):
+    """Dispatch bounded event batches without waiting for the native queue to empty."""
+    import _tkinter
+    deadline = time.monotonic() + timeout
+    while app.busy:
+        assert time.monotonic() < deadline, "The mocked UI job did not finish before its deadline"
+        # Tk's update command drains the whole event queue. On an Aqua runner
+        # that can remain inside native code indefinitely, defeating a Python
+        # deadline. Dispatch individual nonblocking events so timers, image
+        # rendering and worker replies still run, with a deadline between them.
+        for _ in range(32):
+            if not app.busy or time.monotonic() >= deadline:
+                break
+            if not root.tk.dooneevent(_tkinter.ALL_EVENTS | _tkinter.DONT_WAIT):
+                break
+        if app.busy:
+            time.sleep(0.01)
+
+
 def main():
     import tkinter as tk
     from companion.app import App
@@ -124,10 +143,7 @@ def main():
         app.input.delete("1.0", "end")
         app.input.insert("1.0", "离线 UI 测试")
         app.send()
-        deadline = time.monotonic() + 5
-        while app.busy and time.monotonic() < deadline:
-            root.update()
-            time.sleep(0.03)
+        wait_for_job(root, app)
         assert not app.busy
         assert "no AI request or network connection was made" in app.chat.get("1.0", "end")
         from companion.demo import example_picture
@@ -158,10 +174,7 @@ def main():
         app.model.set("custom-gemini-id")
         with patch("companion.app.ask", return_value=Answer("模拟 Gemini 回答")) as mock_ask:
             app.send()
-            deadline = time.monotonic() + 5
-            while app.busy and time.monotonic() < deadline:
-                root.update()
-                time.sleep(0.03)
+            wait_for_job(root, app)
             assert not app.busy
             assert mock_ask.call_args.args[:3] == ("Gemini", "fixture-not-a-real-key", "custom-gemini-id")
             assert mock_ask.call_args.kwargs["search"] is False
@@ -185,10 +198,7 @@ def main():
         app.fill_prompt("本机连接模拟")
         with patch("companion.app.ask_codex", return_value=Answer("Codex 模拟回答")) as mock_codex:
             app.send()
-            deadline = time.monotonic() + 5
-            while app.busy and time.monotonic() < deadline:
-                root.update()
-                time.sleep(0.03)
+            wait_for_job(root, app)
             assert mock_codex.call_args.args[:2] == (AUTO_MODEL, "本机连接模拟")
             assert "generate" not in mock_codex.call_args.kwargs
             assert app.history[-1]["content"] == "Codex 模拟回答"
@@ -205,10 +215,7 @@ def main():
         app.fill_prompt("虚构流程图")
         with patch("companion.app.ask", return_value=Answer("生成图", images=[example_picture()])) as mock_image:
             app.send()
-            deadline = time.monotonic() + 5
-            while app.busy and time.monotonic() < deadline:
-                root.update()
-                time.sleep(0.03)
+            wait_for_job(root, app)
             connection = mock_image.call_args.kwargs["image_connection"]
             assert (connection.provider, connection.key, connection.model) == ("Gemini", "image-fixture", "gemini-nano-banana-2.1")
             assert mock_image.call_args.args[3] == "虚构流程图"
@@ -237,10 +244,7 @@ def main():
             backend = "darwin" if sys.platform == "darwin" else "win32"
             window = GameWindow(101, 202, executable, "synthetic", backend)
             def finish_job():
-                deadline = time.monotonic() + 5
-                while app.busy and time.monotonic() < deadline:
-                    root.update()
-                    time.sleep(0.02)
+                wait_for_job(root, app)
                 assert not app.busy
             assert app.paste_screenshot_button in app.interactive_widgets
             assert app.controls.pack_slaves()[:2] == [app.paste_button, app.paste_screenshot_button]
