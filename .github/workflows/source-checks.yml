@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: source-checks-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   contracts-and-ui:
     strategy:
@@ -31,7 +35,8 @@ jobs:
       - name: Python and Lua contracts
         run: python scripts/check.py
       - name: Hidden interface checks with synthetic input
-        run: python scripts/gui_smoke.py
+        timeout-minutes: 2
+        run: python -u -c "import faulthandler,runpy; faulthandler.dump_traceback_later(60,exit=True); runpy.run_path('scripts/gui_smoke.py',run_name='__main__'); faulthandler.cancel_dump_traceback_later()"
       - name: Compile macOS helper and check a private pasteboard
         if: runner.os == 'macOS'
         run: |
