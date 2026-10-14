@@ -4,9 +4,9 @@
 
 Forever AI combines a read-only game AddOn with a desktop chat Companion. Share a snapshot of your character, equipment and quests with AI to ask about drops, recipes or quest order, optionally adding a game screenshot.
 
-Replies appear in the desktop chat window. **Chatting with AI inside the game's chat channels is not currently supported.** The application interface is currently primarily Chinese.
+Replies appear in the desktop chat window. **Chatting with AI inside the game's chat channels is not currently supported.** The desktop interface is in English; AI replies follow the language of your question.
 
-This is a development prototype: Companion **0.4.2**, AddOn **0.3.0**. The AddOn uses TOC **16001** for the corresponding WoW: Forever client; compatibility with other retail, Classic or beta clients is not guaranteed.
+This is a development prototype: Companion **0.4.3**, AddOn **0.3.0**. The AddOn uses TOC **16001** for the corresponding WoW: Forever client; compatibility with other retail, Classic or beta clients is not guaranteed.
 
 ## Which download should I choose?
 
@@ -17,7 +17,7 @@ This is a development prototype: Companion **0.4.2**, AddOn **0.3.0**. The AddOn
 3. Finish installation and open **Forever AI** from the Start menu or desktop shortcut.
 4. On the next full game launch, enable **Forever AI | Snapshot** in the AddOns list. Continue with [Connect AI](#3-connect-ai), then [Ask your first question](#4-ask-your-first-question).
 
-You still need your own model account or API key. The installer does not log in for you or restart the game. This first installer is unsigned; Windows may show an unknown-publisher or reputation notice.
+You still need your own model account or API key. The installer does not log in for you or restart the game. The installer is unsigned; Windows may show an unknown-publisher or reputation notice.
 
 When updating the AddOn, setup preserves its previous folder in the client's `Interface/ForeverAI-backups`. Uninstalling the Companion leaves the game AddOn and these backups in place.
 
@@ -103,8 +103,8 @@ Open the **gear icon** and choose a connection:
 
 | Connection | What you need |
 | --- | --- |
-| **Offline demo / 离线示例** | No account. Displays fictional text and a diagram to check the interface, without calling a model. |
-| **Codex (signed in) / Codex（已登录）** | Install the official Codex CLI yourself and sign in with your own ChatGPT account. The Companion uses that CLI and your account's limits; you do not enter an API key in the Companion. |
+| **Offline demo** | No account. Displays fictional text and a diagram to check the interface, without calling a model. |
+| **Codex (signed in)** | Install the official Codex CLI yourself and sign in with your own ChatGPT account. The Companion uses that CLI and your account's limits; you do not enter an API key in the Companion. |
 | **OpenAI / Gemini / Claude** | An API key from the selected provider. Choose a model or enter a model ID your account can access. Billing and limits are controlled by that provider. |
 
 **Installing the Codex desktop app, including its Microsoft Store version, does not guarantee that the official CLI is installed or available to the Companion.** Follow the [official Codex CLI installation instructions](https://learn.chatgpt.com/docs/codex/cli) and [authentication guide](https://learn.chatgpt.com/docs/auth), then use the connection check in the Companion's settings. The check does not send a model request. If it reports unsupported isolation options, update the CLI at the path shown in the error.
@@ -115,7 +115,7 @@ Keys remain only in the Companion's memory for the current run, so you must ente
 
 1. Type **`/fai`** in the game. The panel prepares and selects the snapshot data.
 2. Press **Ctrl+C** on Windows or **Command+C** on Mac (or Ctrl+C if supported by your client). The AddOn cannot write directly to the system clipboard, so you must press the shortcut yourself.
-3. Click **Paste AddOn / 粘贴 addon** in the Companion, or paste the data directly into the input box. Wait for **Import successful / 导入成功** and the quest count, then enter your question.
+3. Click **Paste AddOn snapshot** in the Companion, or paste the data directly into the input box. Wait for **Import successful** and the quest count, then enter your question.
 4. Press **Shift+Enter to send**; **Enter inserts a newline**. Try “Suggest an order for my quests that reduces travel,” “Where does this item drop?” or “How can I obtain this recipe?”
 5. Export and paste again when your character's state changes; snapshots do not sync in real time. Open the relevant bank, profession or NPC window before exporting if you need that information.
 
@@ -125,7 +125,7 @@ Chat supports text, public guide images and generated diagrams. Click an image t
 
 ## Screenshots and window controls
 
-Capture is off by default. In settings, select a PNG/JPEG file or select a local WoW window for preview and capture. On Windows, the **Capture and paste / 截图并粘贴** icon beside Paste AddOn captures the selected game window, copies the image to the clipboard and attaches it to the next question. If no window is selected, it detects and selects the first WoW window; if none is found, it captures nothing. When running multiple clients, choose the intended window in settings.
+Capture is off by default. In settings, select a PNG/JPEG file or select a local WoW window for preview and capture. On Windows and macOS, the **Capture & paste** icon beside Paste AddOn captures the selected game window, copies the image to the clipboard and attaches it to the next question. If no window is selected, it detects and selects the first WoW window; if none is found, it captures nothing. When running multiple clients, choose the intended window in settings.
 
 A successful capture turns off automatic capture before every message. Attachments expire after two minutes and must be captured again. If the clipboard is busy, the image remains available as an attachment. Capture failures never fall back to the entire desktop.
 

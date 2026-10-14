@@ -1,6 +1,8 @@
 # Verification status
 
-This public source snapshot contains companion 0.4.2 and addon 0.3.0. Installation
+This source snapshot contains companion 0.4.3 and addon 0.3.0. The records below
+describe the previous 0.4.2 release; the English-interface release is awaiting its
+own CI and package results. Installation
 instructions are in the [English README](../README.md) and
 [中文版 README](../README.zh-CN.md).
 

@@ -59,6 +59,28 @@ class MacCaptureTests(unittest.TestCase):
         with patch.object(mac_capture, "run_helper", return_value=b"invalid"), self.assertRaises(UserError):
             mac_capture.request_permission()
 
+    def test_clipboard_bytes_use_stdin_and_never_capture_or_request_permission(self):
+        calls = []
+        def runner(args, **kwargs):
+            calls.append((args, kwargs))
+            return subprocess.CompletedProcess(args, 0, b'{"copied":true}', b"")
+        self.assertEqual(mac_capture.run_helper("copy-image", input_bytes=b"fixture PNG", runner=runner),
+                         b'{"copied":true}')
+        self.assertEqual(calls[0][0][1:], ["copy-image"])
+        self.assertEqual(calls[0][1]["input"], b"fixture PNG")
+        self.assertEqual(len(calls), 1)
+
+    def test_clipboard_failure_messages_do_not_leak_native_output(self):
+        for code in (b'{"error":"clipboardFailed"}', b'{"error":"clipboardImageInvalid"}', b'private stderr'):
+            def runner(args, **kwargs):
+                return subprocess.CompletedProcess(args, 1, b"", code)
+            with self.assertRaisesRegex(UserError, "clipboard") as caught:
+                mac_capture.run_helper("copy-image", input_bytes=b"fixture", runner=runner)
+            self.assertNotIn("private stderr", str(caught.exception))
+        with self.assertRaisesRegex(UserError, "screenshot.*attachment"):
+            mac_capture.run_helper("copy-image", runner=lambda *a, **kw: (_ for _ in ()).throw(
+                subprocess.TimeoutExpired("helper", 20)))
+
 
 if __name__ == "__main__":
     unittest.main()

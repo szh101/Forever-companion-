@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import tomllib
 
 from build_native import build
 
@@ -49,7 +50,8 @@ def main():
     plist_path = app / "Contents" / "Info.plist"
     with plist_path.open("rb") as f:
         info = plistlib.load(f)
-    info.update(CFBundleShortVersionString="0.4.2", CFBundleVersion="6", LSMinimumSystemVersion="14.0",
+    version = tomllib.loads((source / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    info.update(CFBundleShortVersionString=version, CFBundleVersion="8", LSMinimumSystemVersion="14.0",
                 NSHighResolutionCapable=True, NSHumanReadableCopyright="Forever AI local prototype",
                 ForeverAISourceCommit=actual)
     with plist_path.open("wb") as f:

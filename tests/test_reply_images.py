@@ -74,7 +74,7 @@ class ReplyImageTests(unittest.TestCase):
         self.assertIs(resolve_images(answer, downloader=fail), answer)
         self.assertEqual(answer.text, '文字回答')
         self.assertIsNone(answer.images[0].png)
-        self.assertIn('配图未加载', answer.warnings[0])
+        self.assertIn('Image not loaded', answer.warnings[0])
 
     def test_openai_image_request_is_explicit_and_has_no_search_or_key_in_body(self):
         requests = []
@@ -112,5 +112,5 @@ class ReplyImageTests(unittest.TestCase):
     def test_unsupported_and_empty_generation_never_retries(self):
         with self.assertRaises(UserError):
             generate_image('Claude', 'fixture', 'model', 'p', transport=lambda *a, **k: self.fail('network forbidden'))
-        with self.assertRaisesRegex(UserError, '没有返回图片'):
+        with self.assertRaisesRegex(UserError, 'returned no image'):
             generate_image('OpenAI', 'fixture', 'model', 'p', transport=lambda *a, **k: io.BytesIO(b'{"data": []}'))

@@ -28,22 +28,22 @@ def extract_images(text):
         caption, url = match.groups()
         if url not in seen and len(images) < MAX_IMAGES:
             seen.add(url)
-            images.append(ReplyImage(None, caption or "网页配图", url))
+            images.append(ReplyImage(None, caption or "Source image", url))
             return ""
-        return "[其余配图已省略]"
+        return "[Additional images omitted]"
     return IMAGE_MARKDOWN.sub(replace, text).strip(), images
 
 
 def normalize_image(raw):
     from PIL import Image, UnidentifiedImageError
     if not raw or len(raw) > MAX_IMAGE_BYTES:
-        raise UserError("图片为空或超过 8 MB。")
+        raise UserError("The image is empty or exceeds 8 MB.")
     try:
         with Image.open(io.BytesIO(raw)) as image:
             if image.format not in ("PNG", "JPEG", "WEBP", "GIF"):
-                raise UserError("仅显示 PNG、JPEG、WebP 或 GIF 首帧。")
+                raise UserError("Only PNG, JPEG, WebP or the first frame of a GIF can be displayed.")
             if image.width * image.height > 20_000_000:
-                raise UserError("图片分辨率过大。")
+                raise UserError("The image resolution is too high.")
             image.load()
             image.thumbnail((2048, 2048))
             image = image.convert("RGB")
@@ -51,19 +51,19 @@ def normalize_image(raw):
             image.save(output, "PNG")
             result = output.getvalue()
             if len(result) > MAX_IMAGE_BYTES:
-                raise UserError("图片解码后过大。")
+                raise UserError("The decoded image is too large.")
             return result
     except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
-        raise UserError("无法显示这张图片。") from None
+        raise UserError("This image could not be displayed.") from None
 
 
 def decode_image(encoded):
     if not isinstance(encoded, str) or len(encoded) > (MAX_IMAGE_BYTES * 4 // 3 + 4):
-        raise UserError("图片数据无效或过大。")
+        raise UserError("The image data is invalid or too large.")
     try:
         return normalize_image(base64.b64decode(encoded, validate=True))
     except (ValueError, TypeError):
-        raise UserError("图片编码无效。") from None
+        raise UserError("The image encoding is invalid.") from None
 
 
 def public_image_target(url, *, resolver=None):
@@ -79,7 +79,7 @@ def public_image_target(url, *, resolver=None):
             raise ValueError()
         return host, addresses[0], (parts.path or "/") + ("?" + parts.query if parts.query else "")
     except (ValueError, UnicodeError, OSError):
-        raise UserError("配图地址不是可访问的公开 HTTPS 图片地址。") from None
+        raise UserError("The image URL is not an accessible public HTTPS address.") from None
 
 
 class PublicImageConnection(http.client.HTTPSConnection):
@@ -107,7 +107,7 @@ def download_image(url, *, resolver=None, connection_factory=None):
             host, address, path = public_image_target(url, resolver=resolver)
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise UserError("配图下载超时。")
+                raise UserError("The image download timed out.")
             connection = (connection_factory or PublicImageConnection)(host, address, min(8, remaining))
             try:
                 connection.request("GET", path, headers={"User-Agent": "ForeverAI/0.4", "Accept": "image/png,image/jpeg,image/webp,image/gif"})
@@ -115,16 +115,16 @@ def download_image(url, *, resolver=None, connection_factory=None):
                 if response.status in (301, 302, 303, 307, 308):
                     location = response.getheader("Location")
                     if not location:
-                        raise UserError("配图重定向无效。")
+                        raise UserError("The image download redirect is invalid.")
                     url = urljoin(url, location)
                     continue  # Validate every redirect, including DNS and protocol.
                 mime = response.getheader("Content-Type", "").split(";")[0].strip().lower()
                 if response.status != 200 or mime not in ("image/png", "image/jpeg", "image/webp", "image/gif"):
-                    raise UserError("该地址没有返回可显示的图片。")
+                    raise UserError("The URL did not return a supported image.")
                 data = bytearray()
                 while len(data) <= MAX_IMAGE_BYTES:
                     if time.monotonic() > deadline:
-                        raise UserError("配图下载超时。")
+                        raise UserError("The image download timed out.")
                     chunk = response.read(min(64_000, MAX_IMAGE_BYTES + 1 - len(data)))
                     if not chunk:
                         break
@@ -132,9 +132,9 @@ def download_image(url, *, resolver=None, connection_factory=None):
                 return normalize_image(bytes(data))
             finally:
                 connection.close()
-        raise UserError("配图重定向次数过多。")
+        raise UserError("The image download was redirected too many times.")
     except (OSError, http.client.HTTPException, ValueError):
-        raise UserError("配图下载失败；文字回答仍可阅读。") from None
+        raise UserError("The image could not be downloaded. The text answer is still available.") from None
 
 
 def resolve_images(answer, *, downloader=None):
@@ -143,19 +143,19 @@ def resolve_images(answer, *, downloader=None):
             try:
                 image.png = (downloader or download_image)(image.url)
             except UserError as exc:
-                answer.warnings.append("配图未加载：" + str(exc))
+                answer.warnings.append("Image not loaded: " + str(exc))
     return answer
 
 
 def generate_image(provider, key, model, prompt, *, snapshot=None, history=(), transport=None):
     if provider not in IMAGE_MODELS:
-        raise UserError("生成图片请选择 OpenAI 或 Gemini；Claude 只能提供文字和来源配图。")
+        raise UserError("Select OpenAI or Gemini for image generation. Claude can return text and source images.")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,149}", model):
-        raise UserError("请填写有效的图片模型 ID。")
+        raise UserError("Enter a valid image model ID.")
     # Reuse the same bounded snapshot/history validation as ordinary chat.
     _, context = build_request("OpenAI", "context-only", prompt, snapshot=snapshot, history=history, search=False)
     instruction = ("Create ONE explanatory illustration, not a factual game screenshot. "
-                   "Label it AI 示意图. Do not invent WoW map coordinates or claim verified geography.\n")
+                   "Label it AI illustration. Do not invent WoW map coordinates or claim verified geography.\n")
     text = instruction + json_context(context)
     if provider == "OpenAI":
         url = "https://api.openai.com/v1/images/generations"
@@ -168,7 +168,7 @@ def generate_image(provider, key, model, prompt, *, snapshot=None, history=(), t
     images, texts = [], []
     if provider == "OpenAI":
         for item in data.get("data", [])[:1]:
-            images.append(ReplyImage(decode_image(item.get("b64_json")), "AI 示意图", generated=True))
+            images.append(ReplyImage(decode_image(item.get("b64_json")), "AI illustration", generated=True))
     else:
         for step in data.get("steps", []):
             if step.get("type") != "model_output":
@@ -177,10 +177,10 @@ def generate_image(provider, key, model, prompt, *, snapshot=None, history=(), t
                 if part.get("type") == "text":
                     texts.append(str(part.get("text", "")))
                 elif part.get("type") == "image" and not images:
-                    images.append(ReplyImage(decode_image(part.get("data")), "AI 示意图", generated=True))
+                    images.append(ReplyImage(decode_image(part.get("data")), "AI illustration", generated=True))
     if not images:
-        raise UserError("模型没有返回图片，可能不支持生图或本次被拒绝。没有自动重试。")
-    return Answer("\n".join(texts) or "AI 示意图 · 不能作为真实游戏地图或掉落证据。", images=images)
+        raise UserError("The model returned no image. It may not support image generation or may have declined this request. No automatic retry was made.")
+    return Answer("\n".join(texts) or "AI illustration · Not a real game map or evidence of item drops.", images=images)
 
 
 def json_context(context):

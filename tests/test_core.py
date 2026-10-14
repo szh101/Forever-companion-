@@ -18,8 +18,8 @@ def snapshot():
 class CoreTests(unittest.TestCase):
     def test_snapshot_validation_and_staleness(self):
         data = parse_snapshot(json.dumps(snapshot()))
-        self.assertIn("1 个任务", snapshot_status(data))
-        self.assertIn("已过期", snapshot_status(data, data["capturedAt"] + 301))
+        self.assertIn("1 quest", snapshot_status(data))
+        self.assertIn("Outdated", snapshot_status(data, data["capturedAt"] + 301))
         for invalid in ["return {}", "[]", "{}", json.dumps({**data, "capturedAt": True}),
                         json.dumps({**data, "quests": ["wrong"]}),
                         json.dumps({**data, "quests": [{"id": True, "title": "x"}]}), "x" * 200001]:
@@ -74,7 +74,7 @@ class CoreTests(unittest.TestCase):
         for model in ("../models/x", "x?key=other", "x#fragment", "x%2Fother", "https://example.org", "models/x"):
             with self.subTest(model=model), self.assertRaises(UserError):
                 build_request("Gemini", model, "x")
-        with self.assertRaisesRegex(UserError, "尚未接入联网搜索"):
+        with self.assertRaisesRegex(UserError, "does not support web search"):
             ask("Gemini", "fixture", "gemini-3.8-flash", "x", search=True,
                 transport=lambda *a, **kw: self.fail("Must reject before network access"))
 
@@ -93,8 +93,8 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(answer.text, "先交已完成任务。")
         self.assertEqual(answer.usage["totalTokenCount"], 32)
         self.assertEqual(answer.sources, [])
-        self.assertTrue(any("输出上限" in text for text in answer.warnings))
-        self.assertTrue(any("未联网检索" in text for text in answer.warnings))
+        self.assertTrue(any("output limit" in text for text in answer.warnings))
+        self.assertTrue(any("did not search the web" in text for text in answer.warnings))
         self.assertEqual(len(requests), 1)
         self.assertEqual(requests[0].get_header("X-goog-api-key"), "fixture-secret")
         self.assertIsNone(requests[0].get_header("Authorization"))

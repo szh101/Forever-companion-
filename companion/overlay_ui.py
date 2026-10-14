@@ -109,7 +109,7 @@ class GameOverlay:
             self.native.close()
             self.native = None
         self.root.overrideredirect(False)
-        self.app.status.set("穿透模式未能启动，已恢复普通窗口。")
+        self.app.status.set("Click-through mode could not start. Restored normal window behavior.")
 
     def refresh(self):
         self.timer = None
@@ -274,7 +274,7 @@ class GameOverlay:
             self.pressed = key
             if kind == "input":
                 if not self.native.activate_input():
-                    self.app.status.set("请再次点击输入框开始输入。")
+                    self.app.status.set("Click the input box again to start typing.")
                     self.pressed = None
                     return
                 widget.focus_set()

@@ -38,12 +38,12 @@ class CodexBridgeTests(unittest.TestCase):
 
     def test_missing_login_and_older_cli_fail_before_model_request(self):
         def old(args, **kwargs): return subprocess.CompletedProcess(args, 0, b'old CLI', b'')
-        with self.assertRaisesRegex(UserError, '版本'):
+        with self.assertRaisesRegex(UserError, 'version'):
             probe_codex(runner=old, command=['codex'])
         def logged_out(args, **kwargs):
             text = b'--ignore-user-config --ephemeral --json' if '--help' in args else b'Not logged in'
             return subprocess.CompletedProcess(args, 0, text, b'')
-        with self.assertRaisesRegex(UserError, '尚未'):
+        with self.assertRaisesRegex(UserError, 'not signed in'):
             ask_codex('model', 'question', runner=logged_out, command=['codex'])
 
     def test_missing_cli_in_chat_produces_discovery_diagnostic_without_request(self):
@@ -113,7 +113,7 @@ class CodexBridgeTests(unittest.TestCase):
         self.assertEqual(len(calls), 1, 'Stop before login or any model request')
         self.assertIn('3221225794', str(error))
         self.assertIn('fixture-codex', str(error))
-        self.assertNotIn('请更新', str(error))
+        self.assertNotIn('Update', str(error))
         self.assertEqual(error.diagnostics['failureCode'], 'help_process_failed')
         self.assertFalse(error.diagnostics['modelRequestSent'])
         with tempfile.TemporaryDirectory() as folder:
@@ -167,7 +167,7 @@ class CodexBridgeTests(unittest.TestCase):
             probe_codex(runner=runner, command=['fixture-codex'])
         self.assertEqual(caught.exception.diagnostics['failureCode'], 'login_check_failed')
         self.assertEqual(caught.exception.diagnostics['phase'], 'login_status')
-        self.assertNotIn('尚未通过', str(caught.exception))
+        self.assertNotIn('not signed in', str(caught.exception))
 
     def test_diagnostic_write_failure_keeps_original_error(self):
         error = CodexProbeError('original', {'failureCode': 'fixture'})

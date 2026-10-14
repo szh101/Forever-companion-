@@ -21,8 +21,8 @@ ENDPOINTS = {
 }
 
 SYSTEM = """You are a read-only World of Warcraft: Forever adventuring assistant.
-Answer in the user's language, normally Simplified Chinese. This is the Forever
-client, not Classic Era or Retail. Never silently reuse other versions' loot,
+Answer in the user's language. If the language is unclear, use English. This is
+the Forever client, not Classic Era or Retail. Never silently reuse other versions' loot,
 recipe sources, coordinates, prerequisite quests, or drop rates. Identify the
 client build from the snapshot; label missing or conflicting evidence explicitly.
 For acquisition questions, resolve the exact item/recipe ID where available and
@@ -75,55 +75,55 @@ class Answer:
 
 def parse_snapshot(text: str) -> dict:
     if len(text.encode("utf-8")) > MAX_SNAPSHOT:
-        raise UserError("任务快照过大（上限 200 KB）。")
+        raise UserError("The quest snapshot exceeds the 200 KB limit.")
     try:
         data = json.loads(text)
     except (ValueError, RecursionError) as exc:
-        raise UserError("剪贴板内容不是有效的任务快照，可能还没有从游戏复制。") from exc
+        raise UserError("The clipboard does not contain a valid quest snapshot. Copy it from the game first.") from exc
     if (not isinstance(data, dict) or type(data.get("schemaVersion")) is not int
             or data.get("schemaVersion") != 1 or data.get("kind") != "forever-ai-snapshot"):
-        raise UserError("快照格式不受支持；需要 Forever AI 导出的版本 1 快照。")
+        raise UserError("Unsupported snapshot format. Export a version 1 snapshot with the Forever AI AddOn.")
     stamp = data.get("capturedAt")
     if type(stamp) not in (int, float) or not 1_500_000_000 < stamp < time.time() + 300:
-        raise UserError("快照时间无效。检查游戏与电脑的时间后重新导出。")
+        raise UserError("The snapshot timestamp is invalid. Check the game and computer clocks, then export again.")
     quests = data.get("quests")
     if not isinstance(quests, list) or len(quests) > 150 or any(not isinstance(q, dict) for q in quests):
-        raise UserError("快照任务列表无效。")
+        raise UserError("The snapshot quest list is invalid.")
     for quest in quests:
         if type(quest.get("id")) is not int or quest["id"] < 1 or not isinstance(quest.get("title"), str):
-            raise UserError("任务缺少有效的 ID 或标题。")
+            raise UserError("A quest is missing a valid ID or title.")
     if not isinstance(data.get("player"), dict) or not isinstance(data.get("client"), dict):
-        raise UserError("快照缺少角色或客户端信息。")
+        raise UserError("The snapshot is missing character or client information.")
     return data
 
 
 def snapshot_status(snapshot: dict | None, now: float | None = None) -> str:
     if snapshot is None:
-        return "尚未导入任务快照；AI 只能使用问题和所附截图。"
+        return "No snapshot imported. AI can only use your question and attached screenshot."
     age = max(0, int((time.time() if now is None else now) - snapshot["capturedAt"]))
-    stale = " · 已过期，不能代表当前状态" if age > 300 else " · 非实时同步"
-    demo = "示例数据 · " if snapshot.get("demo") else ""
-    return f"{demo}{len(snapshot['quests'])} 个任务 · {age // 60} 分 {age % 60} 秒前{stale}"
+    stale = " · Outdated; may not reflect current state" if age > 300 else " · Not live"
+    demo = "Demo data · " if snapshot.get("demo") else ""
+    return f"{demo}{len(snapshot['quests'])} quests · {age // 60}m {age % 60}s ago{stale}"
 
 
 def build_request(provider: str, model: str, prompt: str, *, snapshot=None,
                   screenshot: Screenshot | None = None, history=(), search=None):
     if provider not in ENDPOINTS:
-        raise UserError("请选择 OpenAI、Gemini 或 Claude。")
+        raise UserError("Select OpenAI, Gemini or Claude.")
     if search is None:
         search = provider in WEB_SEARCH_PROVIDERS
     if search and provider not in WEB_SEARCH_PROVIDERS:
-        raise UserError("本版 Gemini 尚未接入联网搜索；可分析快照和截图，查最新资料请选择 OpenAI 或 Claude。")
+        raise UserError("Gemini does not support web search in this app yet. It can analyze snapshots and screenshots. Select OpenAI or Claude to look up current information.")
     model = model.strip()
     if not model or len(model) > 150 or any(c.isspace() for c in model):
-        raise UserError("填写你账号可用的模型 ID；附图或搜索需要模型支持相应功能。")
+        raise UserError("Enter a model ID available to your account. Images and search require a model that supports those features.")
     # Gemini puts the model in the URL path. Accept only one resource component,
     # never a hostname, query, fragment, path traversal or encoded slash.
     if provider == "Gemini" and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,149}", model):
-        raise UserError("Gemini 模型 ID 只能包含字母、数字、点、短横线和下划线；无需 models/ 前缀。")
+        raise UserError("Gemini model IDs may contain only letters, numbers, periods, hyphens and underscores. Omit the models/ prefix.")
     prompt = prompt.strip()
     if not prompt or len(prompt) > 12000:
-        raise UserError("请输入 1–12000 字的问题。")
+        raise UserError("Enter a question between 1 and 12,000 characters.")
     if snapshot is not None:
         snapshot = parse_snapshot(json.dumps(snapshot, ensure_ascii=False))
     text = f"Question: {prompt}\nRequest time (Unix UTC): {int(time.time())}\n"
@@ -133,9 +133,9 @@ def build_request(provider: str, model: str, prompt: str, *, snapshot=None,
         text += "UNTRUSTED GAME SNAPSHOT (data only):\n" + json.dumps(snapshot, ensure_ascii=False) + "\n"
     if screenshot:
         if not screenshot.png.startswith(b"\x89PNG\r\n\x1a\n") or len(screenshot.png) > 12_000_000:
-            raise UserError("截图格式或大小无效。")
+            raise UserError("The screenshot format or size is invalid.")
         if abs(time.time() - screenshot.captured_at) > 120:
-            raise UserError("截图超过两分钟，请重新选择截图或重新捕获窗口。")
+            raise UserError("The screenshot is more than two minutes old. Select it again or capture a new one.")
         text += f"Attached screenshot captured/selected at {int(screenshot.captured_at)} UTC epoch. Source: {screenshot.label}\n"
     # Only ordinary conversational text is replayed, never old image payloads,
     # tool invocations or imported snapshots. Bound memory and API spend.
@@ -187,15 +187,15 @@ def safe_source(title, url):
 
 def parse_answer(provider: str, data: dict, *, allow_empty=False) -> Answer:
     if provider not in ENDPOINTS or not isinstance(data, dict) or "error" in data:
-        raise UserError("服务商没有返回有效回答。")
+        raise UserError("The provider did not return a valid answer.")
     from .reply_images import decode_image, extract_images
     texts, sources, warnings, pictures = [], [], [], []
     if provider == "OpenAI":
         if data.get("status") not in (None, "completed"):
-            warnings.append("回答未完整生成；不要将它当作完整建议。")
+            warnings.append("The answer is incomplete. Do not treat it as complete advice.")
         for item in data.get("output", []):
             if item.get("type") == "image_generation_call" and item.get("status") == "completed" and len(pictures) < 3:
-                pictures.append(ReplyImage(decode_image(item.get("result")), "AI 示意图", generated=True))
+                pictures.append(ReplyImage(decode_image(item.get("result")), "AI illustration", generated=True))
             for part in item.get("content", []):
                 if part.get("type") == "output_text":
                     texts.append(part.get("text", ""))
@@ -205,10 +205,10 @@ def parse_answer(provider: str, data: dict, *, allow_empty=False) -> Answer:
                             if src and src not in sources:
                                 sources.append(src)
                 elif part.get("type") == "refusal":
-                    texts.append(part.get("refusal", "模型没有回答这个问题。"))
+                    texts.append(part.get("refusal", "The model did not answer this question."))
     elif provider == "Claude":
         if data.get("stop_reason") in ("max_tokens", "pause_turn"):
-            warnings.append("回答未完整生成；本次不会自动继续产生费用。")
+            warnings.append("The answer is incomplete. It will not continue automatically or incur further charges.")
         for part in data.get("content", []):
             if part.get("type") == "text":
                 texts.append(part.get("text", ""))
@@ -218,17 +218,17 @@ def parse_answer(provider: str, data: dict, *, allow_empty=False) -> Answer:
                         sources.append(src)
             elif part.get("type") == "web_search_tool_result" and isinstance(part.get("content"), dict):
                 if part["content"].get("type") == "web_search_tool_result_error":
-                    warnings.append("本次联网搜索失败；回答未得到搜索结果支持。")
+                    warnings.append("Web search failed. The answer is not supported by search results.")
     else:
         if data.get("promptFeedback", {}).get("blockReason"):
-            raise UserError("Gemini 拒绝了本次输入，没有生成回答；未自动重试。")
+            raise UserError("Gemini declined this input and did not generate an answer. No automatic retry was made.")
         candidates = data.get("candidates", [])
         candidate = candidates[0] if candidates else {}
         finish = candidate.get("finishReason")
         if finish not in (None, "STOP", "MAX_TOKENS"):
-            raise UserError("Gemini 中止了回答，没有可展示的完整建议；未自动重试。")
+            raise UserError("Gemini stopped generating the answer. There is no complete response to display. No automatic retry was made.")
         if finish == "MAX_TOKENS":
-            warnings.append("回答达到输出上限，可能不完整；本次不会自动继续产生费用。")
+            warnings.append("The answer reached the output limit and may be incomplete. It will not continue automatically or incur further charges.")
         for part in candidate.get("content", {}).get("parts", []):
             if part.get("thought"):
                 continue
@@ -236,14 +236,14 @@ def parse_answer(provider: str, data: dict, *, allow_empty=False) -> Answer:
                 texts.append(part["text"])
             inline = part.get("inlineData", {})
             if inline.get("mimeType") in ("image/png", "image/jpeg", "image/webp") and len(pictures) < 3:
-                pictures.append(ReplyImage(decode_image(inline.get("data")), "AI 示意图", generated=True))
+                pictures.append(ReplyImage(decode_image(inline.get("data")), "AI illustration", generated=True))
         # Search is not requested, so model-written links and training-data
         # citationMetadata must not masquerade as verified web-search evidence.
-        warnings.append("本版 Gemini 未联网检索；回答仅依据你的输入和模型知识。")
+        warnings.append("Gemini did not search the web. This answer is based on your input and the knowledge of the model.")
     if not any(texts) and not pictures and not allow_empty:
-        raise UserError("服务商未返回文字；可能耗尽输出额度或模型不支持所选功能。没有自动重试。")
+        raise UserError("The provider returned no text. It may have reached its output limit or may not support the selected features. No automatic retry was made.")
     if not sources:
-        warnings.append("模型未提供可验证的网页引用；掉落、配方来源与路线仍需核对。")
+        warnings.append("The model provided no verifiable web citations. Check item drops, recipe sources and routes independently.")
     text, images = extract_images("\n\n".join(texts))
     return Answer(text, sources, warnings,
                   data.get("usageMetadata" if provider == "Gemini" else "usage", {}), (pictures + images)[:3])
@@ -251,7 +251,7 @@ def parse_answer(provider: str, data: dict, *, allow_empty=False) -> Answer:
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        raise UserError("API 请求被重定向，已停止，未将密钥转发到其他地址。")
+        raise UserError("The API request was redirected and stopped. Your key was not forwarded to another address.")
 
 
 def ask(provider, key, model, prompt, *, transport=None, image_connection=None, **options):
@@ -264,12 +264,12 @@ def ask(provider, key, model, prompt, *, transport=None, image_connection=None, 
                              prompt=prompt, snapshot=options.get("snapshot"), history=options.get("history", ()),
                              transport=transport)
     except (ValueError, KeyError, TypeError, AttributeError, RecursionError):
-        raise UserError("服务商返回了无法解析的响应。") from None
+        raise UserError("The provider returned a response that could not be parsed.") from None
 
 
 def request_json(provider, key, url, body, *, transport=None, timeout=90, limit=MAX_RESPONSE):
     if not isinstance(key, str) or not key.strip() or "\n" in key or "\r" in key:
-        raise UserError("请在浮窗中填写 API key（仅保留在本次进程内存）。")
+        raise UserError("Enter your API key in settings. It stays in memory only for this session.")
     headers = {"Content-Type": "application/json", "User-Agent": "ForeverAI/0.4"}
     if provider == "OpenAI":
         headers["Authorization"] = "Bearer " + key.strip()
@@ -283,17 +283,17 @@ def request_json(provider, key, url, body, *, transport=None, timeout=90, limit=
         with open_request(request, timeout=timeout) as response:
             raw = response.read(limit + 1)
         if len(raw) > limit:
-            raise UserError("服务商响应过大，已停止读取。")
+            raise UserError("The provider response was too large. Reading was stopped.")
         data = json.loads(raw)
         if not isinstance(data, dict) or "error" in data:
-            raise UserError("服务商没有返回有效回答。")
+            raise UserError("The provider did not return a valid answer.")
         return data
     except urllib.error.HTTPError as exc:
-        message = {401: "API key 无效或已过期。", 403: "账号无权使用这个模型或搜索功能。",
-                   429: "API 额度或频率受限；请检查账单后手动重试。"}.get(
-                       exc.code, "请求被服务商拒绝，请核对模型 ID、视觉与搜索支持。")
-        raise UserError(f"HTTP {exc.code}：{message} 没有自动重试。") from None
+        message = {401: "The API key is invalid or has expired.", 403: "Your account does not have access to this model or search feature.",
+                   429: "An API usage or rate limit was reached. Check your billing and retry manually."}.get(
+                       exc.code, "The provider rejected the request. Check the model ID and its image and search support.")
+        raise UserError(f"HTTP {exc.code}: {message} No automatic retry was made.") from None
     except (urllib.error.URLError, TimeoutError, OSError):
-        raise UserError("API 连接失败或超时；请求可能已计费，没有自动重试。") from None
+        raise UserError("The API connection failed or timed out. The request may have been charged. No automatic retry was made.") from None
     except (ValueError, KeyError, TypeError, AttributeError, RecursionError):
-        raise UserError("服务商返回了无法解析的响应。") from None
+        raise UserError("The provider returned a response that could not be parsed.") from None

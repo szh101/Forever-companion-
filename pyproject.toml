@@ -1,6 +1,6 @@
 [project]
 name = "wow-forever-ai"
-version = "0.4.2"
+version = "0.4.3"
 description = "Read-only WoW Forever addon and macOS / Windows AI companion prototype"
 requires-python = ">=3.11"
 dependencies = ["Pillow>=11.2.1,<13"]

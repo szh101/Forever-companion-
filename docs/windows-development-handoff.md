@@ -5,7 +5,7 @@ Read AGENTS.md, the [README](../README.md), [publication checks](pipeline.md) an
 [verification status](verification.md) before development. Use a separate working
 directory or task branch and preserve changes for both platforms.
 
-The current prototype is companion 0.4.2 with addon 0.3.0. Keep the compact Tk
+The current prototype is companion 0.4.3 with addon 0.3.0. Keep the compact Tk
 chat window, separate settings, icon controls and one natural-language chat flow.
 The main window is 320 x 380 logical pixels. Enter inserts a newline and
 Shift+Enter sends. Directly pasted `/fai` JSON is validated and imported, with

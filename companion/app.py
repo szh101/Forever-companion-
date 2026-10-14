@@ -21,7 +21,7 @@ from .reply_images import IMAGE_MODELS, resolve_images
 from .ui_icons import Tooltip, make_icon
 from .windows_ui import layout_scale
 
-FOLLOW_CHAT = "跟随聊天"
+FOLLOW_CHAT = "Same as chat"
 
 # Shared surfaces keep the compact chat and the separate settings visually related.
 BG = "#111820"
@@ -68,11 +68,11 @@ class App:
         self.topmost = tk.BooleanVar(value=True)
         self.opacity = tk.DoubleVar(value=92.0)
         self.opacity_label = tk.StringVar(value="92%")
-        self.status = tk.StringVar(value="Shift+Enter 发送 · Esc 结束输入" if sys.platform == "win32" else "Shift+Enter 发送 · Enter 换行")
+        self.status = tk.StringVar(value="Shift+Enter sends · Esc exits input" if sys.platform == "win32" else "Shift+Enter sends · Enter adds a line")
         self.snapshot_label = tk.StringVar()
-        self.image_label = tk.StringVar(value="未附图")
+        self.image_label = tk.StringVar(value="No image attached")
         self.is_mac = sys.platform == "darwin"
-        self.font = "PingFang SC" if self.is_mac else "Microsoft YaHei UI"
+        self.font = "Helvetica Neue" if self.is_mac else "Segoe UI"
         root.title("Forever AI")
         root.geometry(self.expanded_size)
         root.minsize(self.px(280), self.px(260))
@@ -86,23 +86,24 @@ class App:
         header.pack(fill="x")
         self.drag_handle = self.close_button = self.resize_handle = None
         if sys.platform == "win32":
-            self.drag_handle = self.icon_button(header, "drag", "拖动窗口", lambda: None)
+            self.drag_handle = self.icon_button(header, "drag", "Drag to move", lambda: None)
             self.drag_handle.pack(side="left", padx=(0, self.px(2)))
         ttk.Label(header, text="FOREVER", foreground=TEXT, font=(self.font, 9, "bold")).pack(side="left")
         ttk.Label(header, textvariable=self.provider_badge, style="Badge.TLabel").pack(side="left", padx=self.px(5))
         if sys.platform == "win32":
-            self.close_button = self.icon_button(header, "remove", "关闭助手", self.root.destroy)
+            self.close_button = self.icon_button(header, "remove", "Close Forever AI", self.root.destroy)
             self.close_button.pack(side="right", padx=(self.px(2), 0))
-        self.settings_button = self.icon_button(header, "settings", "设置", self.open_settings)
+        self.settings_button = self.icon_button(header, "settings", "Settings", self.open_settings)
         self.settings_button.pack(side="right")
-        self.fold_button = self.icon_button(header, "collapse", "收起", self.toggle_collapsed)
+        self.fold_button = self.icon_button(header, "collapse", "Collapse", self.toggle_collapsed)
         self.fold_button.pack(side="right", padx=self.px(2))
-        self.pin_button = self.icon_button(header, "pin", "取消置顶", self.toggle_pin, color=ACCENT)
+        self.pin_button = self.icon_button(header, "pin", "Unpin window", self.toggle_pin, color=ACCENT)
         self.pin_button.pack(side="right")
         self.main_panel = ttk.Frame(outer)
         self.main_panel.pack(fill="both", expand=True)
-        ttk.Label(self.main_panel, textvariable=self.snapshot_label, style="Muted.TLabel").pack(
-            anchor="w", pady=(self.px(5), self.px(1)))
+        self.snapshot_widget = ttk.Label(self.main_panel, textvariable=self.snapshot_label, style="Muted.TLabel",
+                                        wraplength=self.px(300))
+        self.snapshot_widget.pack(anchor="w", pady=(self.px(5), self.px(1)))
         self.chat = scrolledtext.ScrolledText(self.main_panel, wrap="word", bg=BG, fg=TEXT,
                                              insertbackground="white", relief="flat", font=(self.font, 10),
                                              width=1, height=1, padx=self.px(3), pady=self.px(7), spacing3=self.px(4),
@@ -130,16 +131,16 @@ class App:
         self.input.pack(fill="x")
         controls = self.controls = ttk.Frame(composer, style="Card.TFrame")
         controls.pack(fill="x", padx=self.px(4), pady=(0, self.px(4)))
-        self.paste_button = self.icon_button(controls, "paste", "粘贴 addon 快照", self.import_snapshot, style="Card.TButton")
+        self.paste_button = self.icon_button(controls, "paste", "Paste AddOn snapshot", self.import_snapshot, style="Card.TButton")
         self.paste_button.pack(side="left")
         self.paste_screenshot_button = None
-        if sys.platform == "win32":
-            self.paste_screenshot_button = self.icon_button(controls, "paste_image", "截图并粘贴 · 仅下一次提问", self.paste_screenshot, style="Card.TButton")
+        if sys.platform in ("win32", "darwin"):
+            self.paste_screenshot_button = self.icon_button(controls, "paste_image", "Capture & paste · next message", self.paste_screenshot, style="Card.TButton")
             self.paste_screenshot_button.pack(side="left", padx=(self.px(4), 0))
         if sys.platform == "win32":
-            self.resize_handle = self.icon_button(controls, "resize", "拖动调整大小", lambda: None, style="Card.TButton", color=MUTED)
+            self.resize_handle = self.icon_button(controls, "resize", "Drag to resize", lambda: None, style="Card.TButton", color=MUTED)
             self.resize_handle.pack(side="right", padx=(self.px(4), 0))
-        self.send_button = self.icon_button(controls, "send", "发送 · Shift+Enter", self.send, style="Send.TButton", color="#14212a")
+        self.send_button = self.icon_button(controls, "send", "Send · Shift+Enter", self.send, style="Send.TButton", color="#14212a")
         self.send_button.pack(side="right")
         self.status_widget = ttk.Label(self.main_panel, textvariable=self.status, style="Muted.TLabel",
                                       wraplength=self.px(300))
@@ -149,7 +150,7 @@ class App:
         self.build_settings()
         self.model.trace_add("write", lambda *_: self.describe_model())
         self.update_provider_controls()
-        self.append("助手", "粘贴 /fai 的内容，然后直接问我。\n可聊任务、找攻略配图，或画示意图。", "assistant")
+        self.append("Assistant", "Paste your /fai snapshot, then ask a question.\nPlan quests, find guide images, or create a diagram.", "assistant")
         self.tick()
         root.after(100, self.pump)
         self.game_overlay = None
@@ -233,15 +234,15 @@ class App:
     def build_settings(self):
         self.settings_window = tk.Toplevel(self.root)
         self.settings_window.withdraw()
-        self.settings_window.title("Forever AI · 设置")
+        self.settings_window.title("Forever AI · Settings")
         self.settings_window.geometry(f"{self.px(420)}x{min(self.px(620), self.root.winfo_screenheight() - self.px(100))}")
         self.settings_window.minsize(self.px(370), self.px(350))
         self.settings_window.configure(bg=BG)
         self.settings_window.protocol("WM_DELETE_WINDOW", self.settings_window.withdraw)
         heading = ttk.Frame(self.settings_window, padding=(self.px(14), self.px(12), self.px(14), self.px(8)))
         heading.pack(fill="x")
-        ttk.Label(heading, text="设置", font=(self.font, 14, "bold")).pack(anchor="w")
-        ttk.Label(heading, text="按你的习惯，让助手安静地待在游戏旁。", style="Muted.TLabel").pack(anchor="w", pady=(self.px(3), 0))
+        ttk.Label(heading, text="Settings", font=(self.font, 14, "bold")).pack(anchor="w")
+        ttk.Label(heading, text="Make room for your game.", style="Muted.TLabel").pack(anchor="w", pady=(self.px(3), 0))
         self.settings_canvas = tk.Canvas(self.settings_window, bg=BG, highlightthickness=0, borderwidth=0)
         scrollbar = ttk.Scrollbar(self.settings_window, orient="vertical", command=self.settings_canvas.yview)
         self.settings_canvas.configure(yscrollcommand=scrollbar.set)
@@ -290,18 +291,18 @@ class App:
                 label.configure(wraplength=width)
 
         self.settings_canvas.bind("<Configure>", resize_notes)
-        appearance = card("窗口外观")
+        appearance = card("Appearance")
         opacity_row = ttk.Frame(appearance, style="Card.TFrame")
         opacity_row.pack(fill="x")
-        ttk.Label(opacity_row, text="不透明度", style="Card.TLabel").pack(side="left")
+        ttk.Label(opacity_row, text="Opacity", style="Card.TLabel").pack(side="left")
         ttk.Label(opacity_row, textvariable=self.opacity_label, style="Card.TLabel", width=4, anchor="e").pack(side="right")
         self.opacity_slider = ttk.Scale(opacity_row, from_=45, to=100, variable=self.opacity,
                                         command=self.set_opacity, takefocus=False)
         self.opacity_slider.pack(side="left", fill="x", expand=True, padx=self.px(10))
-        note(appearance, "45–100% · 仅影响聊天浮窗")
+        note(appearance, "45–100% · Chat window only")
 
-        connection = card("聊天连接")
-        settings = form(connection, ("连接方式", "模型", "API key"))
+        connection = card("Chat connection")
+        settings = form(connection, ("Provider", "Model", "API key"))
         self.provider_combo = field(ttk.Combobox(settings, textvariable=self.provider, state="readonly",
                                                 values=[CODEX_PROVIDER, DEMO_PROVIDER, *MODEL_CHOICES]), 0)
         self.provider_combo.bind("<<ComboboxSelected>>", self.change_provider)
@@ -310,52 +311,54 @@ class App:
         note(connection, variable=self.model_description, bottom=5)
         codex_bar = ttk.Frame(connection, style="Card.TFrame")
         codex_bar.pack(fill="x", pady=(self.px(3), self.px(4)))
-        ttk.Label(codex_bar, text="本机 Codex 登录", style="Card.TLabel").pack(side="left")
-        self.icon_button(codex_bar, "check", "检查本机 Codex 登录", self.check_codex).pack(side="right")
-        self.search_toggle = ttk.Checkbutton(connection, text="联网查资料", variable=self.search)
+        ttk.Label(codex_bar, text="Codex sign-in", style="Card.TLabel").pack(side="left")
+        self.icon_button(codex_bar, "check", "Check Codex sign-in", self.check_codex).pack(side="right")
+        self.search_toggle = ttk.Checkbutton(connection, text="Search the web", variable=self.search)
         self.search_toggle.pack(anchor="w")
         note(connection, variable=self.search_description)
-        note(connection, "Codex 使用官方 CLI 的 ChatGPT 登录。API key 仅保留在本次运行内存中。")
+        note(connection, "Codex uses your ChatGPT sign-in in the official CLI. API keys stay in memory until you close the app.")
 
-        image_card = card("图片生成", "直接在聊天里描述想画什么。")
-        images = form(image_card, ("图片连接", "图片模型", "图片 key"))
+        image_card = card("Image generation", "Describe the image you want in chat.")
+        images = form(image_card, ("Provider", "Model", "API key"))
         self.image_provider_combo = field(ttk.Combobox(images, textvariable=self.image_provider, state="readonly",
                                                       values=[FOLLOW_CHAT, *IMAGE_MODELS]), 0)
         self.image_provider_combo.bind("<<ComboboxSelected>>", self.change_image_provider)
         self.image_model_combo = field(ttk.Combobox(images, textvariable=self.image_model), 1)
         self.image_key_entry = field(ttk.Entry(images, textvariable=self.image_key, show="•"), 2)
-        note(image_card, "Codex 使用自身图片能力；API 按这里的连接生成，每次至多一张，另计费用。附截图时 API 暂不生图。")
+        note(image_card, "Codex uses its own image tools. API chat uses this connection for up to one image per message, billed separately. API image generation is unavailable with an attached screenshot.")
 
-        capture_card = card("游戏画面", "点击主窗截图按钮时，未选窗口会自动检测 WoW。" if sys.platform == "win32" else
-                            "开启截图后，仅读取你选择的 WoW 窗口。")
+        capture_card = card("Game screenshots", "The chat capture button finds a WoW window if none is selected." if sys.platform in ("win32", "darwin") else
+                            "Capture reads only the WoW window you select.")
         bar = ttk.Frame(capture_card, style="Card.TFrame")
         bar.pack(fill="x", pady=(0, self.px(5)))
         self.window_combo = ttk.Combobox(bar, state="readonly", width=15)
         self.window_combo.pack(side="left", fill="x", expand=True)
-        self.icon_button(bar, "refresh", "刷新游戏窗口", self.refresh_windows).pack(side="left", padx=(self.px(5), 0))
-        ttk.Checkbutton(capture_card, text="每次发送前截图", variable=self.capture, command=self.toggle_capture).pack(anchor="w")
+        self.icon_button(bar, "refresh", "Refresh game windows", self.refresh_windows).pack(side="left", padx=(self.px(5), 0))
+        ttk.Checkbutton(capture_card, text="Capture before each message", variable=self.capture, command=self.toggle_capture).pack(anchor="w")
         if self.is_mac:
-            self.icon_button(capture_card, "permission", "授予截图权限", self.grant_capture_permission).pack(anchor="w", pady=self.px(3))
+            self.icon_button(capture_card, "permission", "Allow screen recording", self.grant_capture_permission).pack(anchor="w", pady=self.px(3))
         bar = ttk.Frame(capture_card, style="Card.TFrame")
         bar.pack(fill="x", pady=self.px(4))
-        self.preview_button = self.icon_button(bar, "preview", "预览所选窗口", self.preview)
+        self.preview_button = self.icon_button(bar, "preview", "Preview selected window", self.preview)
         self.preview_button.pack(side="left")
-        self.icon_button(bar, "image", "选择截图文件", self.select_image).pack(side="left", padx=self.px(4))
-        self.icon_button(bar, "remove", "移除附图", self.remove_image).pack(side="left")
+        self.icon_button(bar, "image", "Choose screenshot file", self.select_image).pack(side="left", padx=self.px(4))
+        self.icon_button(bar, "remove", "Remove image", self.remove_image).pack(side="left")
         note(capture_card, variable=self.image_label)
-        note(capture_card, "附图可能包含角色名与聊天。Codex CLI 附图需短暂写入私有临时目录，请求结束删除。")
+        note(capture_card, "Images may include character names and chat. Codex CLI attachments use a private temporary folder, deleted when the request ends.")
 
-        session = card("对话与任务")
+        session = card("Chat and quests")
         bar = ttk.Frame(session, style="Card.TFrame")
         bar.pack(fill="x")
-        self.icon_button(bar, "new", "新对话", self.clear_chat).pack(side="left")
-        self.icon_button(bar, "clear_snapshot", "移除任务快照", self.remove_snapshot).pack(side="left", padx=self.px(4))
-        self.icon_button(bar, "demo", "载入离线示例", self.load_demo).pack(side="left")
-        note(session, "游戏内 /fai 复制任务；任务改变后重新粘贴。")
+        self.icon_button(bar, "new", "New chat", self.clear_chat).pack(side="left")
+        self.icon_button(bar, "clear_snapshot", "Remove quest snapshot", self.remove_snapshot).pack(side="left", padx=self.px(4))
+        self.icon_button(bar, "demo", "Load offline demo", self.load_demo).pack(side="left")
+        note(session, "Use /fai in game to copy a snapshot. Paste a new one when your quests change.")
 
     def resize_status(self, event):
         if event.widget is self.root:
-            self.status_widget.configure(wraplength=max(self.px(250), event.width - self.px(16)))
+            width = max(self.px(250), event.width - self.px(16))
+            self.status_widget.configure(wraplength=width)
+            self.snapshot_widget.configure(wraplength=width)
 
     def toggle_pin(self):
         self.topmost.set(not self.topmost.get())
@@ -365,7 +368,7 @@ class App:
         self.root.attributes("-topmost", self.topmost.get())
         self.settings_window.attributes("-topmost", self.topmost.get())
         self.pin_button.configure(image=self.icon("pin", ACCENT if self.topmost.get() else TEXT))
-        self.pin_button.tooltip.set_text("取消置顶" if self.topmost.get() else "置顶")
+        self.pin_button.tooltip.set_text("Unpin window" if self.topmost.get() else "Keep on top")
 
     def toggle_collapsed(self):
         if self.collapsed:
@@ -373,14 +376,14 @@ class App:
             self.main_panel.pack(fill="both", expand=True)
             self.root.geometry(self.expanded_size)
             self.fold_button.configure(image=self.icon("collapse"))
-            self.fold_button.tooltip.set_text("收起")
+            self.fold_button.tooltip.set_text("Collapse")
         else:
             self.expanded_size = f"{self.root.winfo_width()}x{self.root.winfo_height()}"
             self.main_panel.pack_forget()
             self.root.minsize(self.px(280), self.px(40))
             self.root.geometry(f"{max(self.px(280), self.root.winfo_width())}x{self.px(40)}")
             self.fold_button.configure(image=self.icon("expand"))
-            self.fold_button.tooltip.set_text("展开")
+            self.fold_button.tooltip.set_text("Expand")
         self.collapsed = not self.collapsed
 
     def open_settings(self):
@@ -393,7 +396,7 @@ class App:
         self.settings_canvas.yview_scroll(delta, "units")
 
     def describe_model(self):
-        self.model_description.set("使用本机 Codex 登录；可手动输入账号支持的模型 ID。" if self.provider.get() == CODEX_PROVIDER
+        self.model_description.set("Uses your local Codex sign-in. You can enter a model ID available to your account." if self.provider.get() == CODEX_PROVIDER
                                    else model_hint(self.provider.get(), self.model.get()))
 
     def change_provider(self, _=None):
@@ -407,8 +410,8 @@ class App:
         self.generation += 1
         if self.snapshot and self.snapshot.get("demo"):
             self.remove_snapshot()
-        self.status.set("Codex · 使用本机 ChatGPT 登录" if self.active_provider == CODEX_PROVIDER else
-                        "已切换连接，请填写对应 API key" if self.active_provider in MODEL_CHOICES else "离线演示 · 不联网")
+        self.status.set("Codex · Uses your ChatGPT sign-in" if self.active_provider == CODEX_PROVIDER else
+                        "Provider changed · Enter its API key" if self.active_provider in MODEL_CHOICES else "Offline demo · No network")
 
     def update_provider_controls(self):
         provider = self.provider.get()
@@ -418,9 +421,9 @@ class App:
         self.key_entry.configure(state="normal" if provider in MODEL_CHOICES else "disabled")
         self.search.set(self.search_preferences.get(provider, False))
         self.search_toggle.configure(state="normal" if provider in WEB_SEARCH_PROVIDERS or provider == CODEX_PROVIDER else "disabled")
-        self.search_description.set("Gemini 暂不支持联网搜索。" if provider == "Gemini" else
-                                    "联网需账号与模型支持；查证时请核对 Forever 版本。" if choices else "演示模式不联网。")
-        self.provider_badge.set("Codex" if provider == CODEX_PROVIDER else "演示" if provider == DEMO_PROVIDER else provider)
+        self.search_description.set("Web search is not available for Gemini here." if provider == "Gemini" else
+                                    "Web search requires account and model support." if choices else "The demo stays offline.")
+        self.provider_badge.set("Codex" if provider == CODEX_PROVIDER else "Demo" if provider == DEMO_PROVIDER else provider)
         self.change_image_provider(reset_key=False)
 
     def change_image_provider(self, _=None, *, reset_key=True):
@@ -431,13 +434,13 @@ class App:
         provider = self.provider.get() if native or self.image_provider.get() == FOLLOW_CHAT else self.image_provider.get()
         choices = IMAGE_MODELS.get(provider, ())
         self.image_model_combo.configure(values=choices, state="normal" if choices else "disabled")
-        self.image_model.set(choices[0] if choices else "使用聊天模型" if provider == CODEX_PROVIDER else "")
+        self.image_model.set(choices[0] if choices else "Chat model" if provider == CODEX_PROVIDER else "")
         separate = not native and self.provider.get() != DEMO_PROVIDER and self.image_provider.get() != FOLLOW_CHAT and provider != self.provider.get()
         self.image_key_entry.configure(state="normal" if separate else "disabled")
 
     def check_codex(self):
         if not self.busy:
-            self.status.set("正在检查 Codex 登录…")
+            self.status.set("Checking Codex sign-in…")
             self.start_worker(lambda: self.jobs.put(("connection", probe_codex())))
 
     def fill_prompt(self, prompt):
@@ -455,23 +458,23 @@ class App:
         from .demo import snapshot
         self.snapshot = snapshot()
         self.update_context_label()
-        self.append("离线示例", "3 个虚构任务：营地补给已完成，森林采集与遗迹探索待完成。")
-        self.fill_prompt("根据当前任务列表，建议下一段任务顺序。")
-        self.status.set("虚构数据 · 点击发送体验离线流程")
+        self.append("Offline demo", "Three fictional quests: Camp Supplies is complete; Forest Gathering and Explore the Ruins are still in progress.")
+        self.fill_prompt("Suggest what to do next based on my current quest list.")
+        self.status.set("Fictional data · Send to try the demo")
 
     def accept_snapshot(self, text):
         self.snapshot = parse_snapshot(text)
         self.update_context_label()
         count = len(self.snapshot["quests"])
-        self.append("导入成功", f"已收到 {count} 个任务的快照。直接输入问题即可。")
-        self.status.set(f"已导入 {count} 个任务 · 继续输入问题")
+        self.append("Import successful", f"Snapshot received: {count} quests. You can now ask a question.")
+        self.status.set(f"Imported {count} quests · Ask a question")
         if not getattr(self, "game_overlay", None):
             self.input.focus_set()
 
     def snapshot_error(self, reason):
-        shortcut = "⌘C（或 Ctrl+C）" if self.is_mac else "Ctrl+C"
-        self.append("没有导入", f"{reason}\n游戏内输入 /fai，按 {shortcut}，再点左下角的粘贴图标。")
-        self.status.set("导入未完成 · 复制后重试")
+        shortcut = "⌘C (or Ctrl+C)" if self.is_mac else "Ctrl+C"
+        self.append("Import failed", f"{reason}\nType /fai in game, press {shortcut}, then click the paste icon at the bottom left.")
+        self.status.set("Import failed · Copy and try again")
 
     def paste_input(self, _=None):
         try:
@@ -490,7 +493,7 @@ class App:
         try:
             self.accept_snapshot(self.root.clipboard_get())
         except tk.TclError:
-            self.snapshot_error("剪贴板没有可读取的文字。")
+            self.snapshot_error("No readable text on the clipboard.")
         except UserError as exc:
             self.snapshot_error(str(exc))
 
@@ -501,12 +504,12 @@ class App:
     def update_context_label(self):
         if self.snapshot:
             age = max(0, int(time.time() - self.snapshot["capturedAt"]))
-            text = f"{'示例 · ' if self.snapshot.get('demo') else ''}{len(self.snapshot['quests'])} 个任务 · {age // 60} 分钟前"
-            text += " · 已过期" if age > 300 else " · 手动快照"
+            text = f"{'Demo · ' if self.snapshot.get('demo') else ''}{len(self.snapshot['quests'])} quests · {age // 60}m ago"
+            text += " · Stale" if age > 300 else " · Snapshot"
         else:
-            text = "无任务快照 · 可直接提问"
+            text = "No snapshot · Ask anything"
         if self.file_shot or self.capture.get():
-            text += " · 附图"
+            text += " · Image"
         self.snapshot_label.set(text)
 
     def tick(self):
@@ -525,7 +528,7 @@ class App:
         self.chat.configure(state="normal")
         self.chat.delete("1.0", "end")
         self.chat.configure(state="disabled")
-        self.status.set("新对话 · 任务快照仍保留")
+        self.status.set("New chat · Quest snapshot kept")
 
     def insert_link(self, label, url):
         if not safe_source(label, url):
@@ -570,16 +573,16 @@ class App:
             photo = ImageTk.PhotoImage(preview)
             label = tk.Label(self.chat, image=photo, bg=BG, cursor="hand2", borderwidth=0)
             label.image = photo
-            label.bind("<Button-1>", lambda _e, p=picture: self.show_picture(p.png, "AI 示意图" if p.generated else p.caption))
+            label.bind("<Button-1>", lambda _e, p=picture: self.show_picture(p.png, "AI illustration" if p.generated else p.caption))
             self.chat.window_create("end", window=label)
             self.chat.insert("end", "\n")
             self.picture_widgets.append(label)
             while len(self.picture_widgets) > 12:
                 self.picture_widgets.pop(0).destroy()
-        prefix = "AI 示意图 · " if picture.generated else "网页配图 · " if picture.url else "预览图片 · "
+        prefix = "AI illustration · " if picture.generated else "Web image · " if picture.url else "Image preview · "
         self.chat.insert("end", prefix + picture.caption[:160] + "\n")
         if picture.url:
-            self.insert_link("查看图片来源", picture.url)
+            self.insert_link("View image source", picture.url)
             self.chat.insert("end", "\n")
         self.chat.insert("end", "\n")
         self.chat.configure(state="disabled")
@@ -599,7 +602,7 @@ class App:
         popup.bind("<Escape>", lambda _: popup.destroy())
 
     def show_image(self, shot):
-        self.show_picture(shot.png, "截图预览 · 尚未发送")
+        self.show_picture(shot.png, "Screenshot preview · Not sent")
 
     def refresh_windows(self):
         try:
@@ -609,46 +612,48 @@ class App:
             if len(self.windows) == 1:
                 self.window_combo.current(0)
             if not self.windows:
-                self.window_combo.set("未发现 WoW 窗口")
+                self.window_combo.set("No WoW window found")
+            return True
         except UserError as exc:
             self.status.set(str(exc))
             self.windows = []
             self.window_combo["values"] = []
-            self.window_combo.set("窗口列表暂不可用")
+            self.window_combo.set("Window list unavailable")
+            return False
 
     def selected_window(self):
         index = self.window_combo.current()
         if index < 0 or index >= len(self.windows):
-            raise UserError("请先在设置中刷新并选择 WoW 窗口。")
+            raise UserError("Refresh and select a WoW window in Settings first.")
         return self.windows[index]
 
     def toggle_capture(self):
         self.image_revision += 1
         if self.capture.get():
             self.file_shot = None
-        self.image_label.set("发送前捕获所选窗口；建议先预览。" if self.capture.get() else "自动截图已关闭。")
+        self.image_label.set("Captures the selected window before sending. Preview it first." if self.capture.get() else "Automatic capture is off.")
         self.update_context_label()
 
     def remove_image(self):
         self.image_revision += 1
         self.file_shot = None
         self.capture.set(False)
-        self.image_label.set("未附图")
+        self.image_label.set("No image attached")
         self.update_context_label()
 
     def select_image(self):
-        path = filedialog.askopenfilename(parent=self.settings_window, title="选择游戏截图", filetypes=[("截图", "*.png *.jpg *.jpeg")])
+        path = filedialog.askopenfilename(parent=self.settings_window, title="Choose game screenshot", filetypes=[("Screenshots", "*.png *.jpg *.jpeg")])
         if path:
             try:
                 shot = load_image(path)
                 self.image_revision += 1
                 self.file_shot = shot
                 self.capture.set(False)
-                self.image_label.set("已选截图，仅供下一次提问；原拍摄时间未知。")
+                self.image_label.set("Screenshot attached for the next message. Original capture time is unknown.")
                 self.update_context_label()
                 self.show_image(self.file_shot)
             except (UserError, OSError) as exc:
-                self.status.set(str(exc) if isinstance(exc, UserError) else "无法读取所选文件。")
+                self.status.set(str(exc) if isinstance(exc, UserError) else "Could not read the selected file.")
 
     def paste_screenshot(self):
         if self.busy:
@@ -656,15 +661,16 @@ class App:
         try:
             window = self.selected_window()
         except UserError:
-            self.refresh_windows()
+            if not self.refresh_windows():
+                return  # Preserve the specific enumeration/permission error.
             if not self.windows:
-                self.status.set("未发现 WoW 窗口，本次未截图。")
+                self.status.set("No WoW window found · Nothing captured")
                 return
             self.window_combo.current(0)
             window = self.selected_window()
         owner = self.root.winfo_id()
         revision = self.image_revision
-        self.status.set("正在截取所选游戏窗口…")
+        self.status.set("Capturing the selected game window…")
         def run():
             shot = capture_window(window)
             clipboard_error = None
@@ -688,13 +694,13 @@ class App:
                 write_probe_diagnostic(exc)
                 self.jobs.put(("error", str(exc)))
             except Exception:
-                self.jobs.put(("error", "操作失败，请检查所选连接与输入。没有自动重试。"))
+                self.jobs.put(("error", "Something went wrong. Check your connection settings and input. No automatic retry was made."))
         threading.Thread(target=guarded, daemon=True).start()
 
     def grant_capture_permission(self):
         if not self.busy:
             from .mac_capture import request_permission
-            self.status.set("请在系统提示中处理截图权限。")
+            self.status.set("Respond to the system's screen recording prompt.")
             self.start_worker(lambda: self.jobs.put(("permission", request_permission())))
 
     def preview(self):
@@ -705,7 +711,7 @@ class App:
         except UserError as exc:
             self.status.set(str(exc))
             return
-        self.status.set("正在预览所选窗口…")
+        self.status.set("Previewing the selected window…")
         self.start_worker(lambda: self.jobs.put(("preview", capture_window(window))))
 
     def send(self, _=None):
@@ -726,12 +732,12 @@ class App:
         image_key = key if image_provider == provider else self.image_key.get()
         image_model = self.image_model.get().strip()
         if provider in MODEL_CHOICES and (not key.strip() or not model):
-            self.status.set("请在设置中填写对应 API key 和模型。")
+            self.status.set("Enter an API key and model in Settings.")
             return "break"
         image_connection = (ImageConnection(image_provider, image_model, image_key)
                             if provider in MODEL_CHOICES and image_provider in IMAGE_MODELS else None)
         if len(prompt) > 12000:
-            self.status.set("问题超过 12000 字。")
+            self.status.set("Your message exceeds 12,000 characters.")
             return "break"
         try:
             window = self.selected_window() if self.capture.get() else None
@@ -741,16 +747,16 @@ class App:
         snapshot, shot, history, search = self.snapshot, self.file_shot, list(self.history), self.search.get()
         generation = self.generation
         self.file_shot = None
-        self.image_label.set("发送前捕获所选窗口" if window else "未附图")
+        self.image_label.set("Captures the selected window before sending" if window else "No image attached")
         self.input.delete("1.0", "end")
-        self.append("你", prompt, "user")
-        self.status.set("正在回答…")
+        self.append("You", prompt, "user")
+        self.status.set("Thinking…")
         def run():
             image = capture_window(window) if window else shot
             if provider == DEMO_PROVIDER:
                 from .demo import example_picture
-                answer = Answer("离线演示：没有调用 AI，也没有联网。\n" + snapshot_status(snapshot) +
-                                "\n真实问答、配图或生图，请在设置中选择 Codex 或 API 连接。",
+                answer = Answer("Offline demo: no AI request or network connection was made.\n" + snapshot_status(snapshot) +
+                                "\nChoose Codex or an API connection in Settings for answers, guide images, or image generation.",
                                 images=[example_picture()])
             elif provider == CODEX_PROVIDER:
                 answer = ask_codex(model, prompt, snapshot=snapshot, screenshot=image, history=history, search=search)
@@ -776,26 +782,26 @@ class App:
                 if kind == "manual_screenshot":
                     shot, clipboard_error, revision = value
                     if revision != self.image_revision:
-                        if self.status.get() == "正在截取所选游戏窗口…":
-                            self.status.set("截图已完成，保留你后续的附图选择。")
+                        if self.status.get() == "Capturing the selected game window…":
+                            self.status.set("Capture complete · Your newer image selection was kept")
                         continue  # A newer attachment choice/removal wins.
                     self.file_shot = shot
                     self.capture.set(False)
-                    self.image_label.set("已截取所选游戏窗口，仅供下一次提问。")
-                    self.status.set("截图已附加；" + clipboard_error if clipboard_error else
-                                    "已截图并复制 · 仅下一次提问 · 自动截图已关闭")
+                    self.image_label.set("Game screenshot attached for the next message.")
+                    self.status.set("Screenshot attached; " + clipboard_error if clipboard_error else
+                                    "Captured & copied · Next message only · Auto-capture off")
                     self.update_context_label()
                 elif kind == "preview":
                     self.show_image(value)
-                    self.status.set("预览完成 · 未发送")
+                    self.status.set("Preview ready · Not sent")
                 elif kind == "permission":
-                    self.status.set("已授权，请刷新窗口并预览。" if value else "请在系统设置中允许屏幕录制后重新打开应用。")
+                    self.status.set("Permission granted · Refresh windows and preview" if value else "Allow screen recording in System Settings, then reopen the app.")
                 elif kind == "connection":
-                    self.append("连接状态", value)
-                    self.status.set("Codex 已登录 · 没有发送模型请求")
+                    self.append("Connection status", value)
+                    self.status.set("Codex signed in · No model request sent")
                 elif kind == "error":
-                    self.append("未完成", value)
-                    self.status.set("请求未完成 · 没有自动重试")
+                    self.append("Request incomplete", value)
+                    self.status.set("Request incomplete · No automatic retry")
                 else:
                     generation, provider, prompt, answer = value
                     self.append("Codex" if provider == CODEX_PROVIDER else provider, answer.text, "assistant")
@@ -805,14 +811,14 @@ class App:
                         self.history.extend([{"role": "user", "content": prompt}, {"role": "assistant", "content": answer.text[:16000]}])
                         self.history = self.history[-8:]
                     if answer.warnings:
-                        self.append("核对提示", "\n".join(answer.warnings))
+                        self.append("Note", "\n".join(answer.warnings))
                     self.chat.configure(state="normal")
                     for title, url in answer.sources:
-                        self.insert_link("来源：" + title, url)
+                        self.insert_link("Source: " + title, url)
                         self.chat.insert("end", "\n")
                     self.chat.configure(state="disabled")
                     self.chat.see("end")
-                    self.status.set("Shift+Enter 发送 · Esc 结束输入" if self.game_overlay else "Shift+Enter 发送 · Enter 换行")
+                    self.status.set("Shift+Enter sends · Esc exits input" if self.game_overlay else "Shift+Enter sends · Enter adds a line")
         except queue.Empty:
             pass
         self.root.after(100, self.pump)

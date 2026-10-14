@@ -58,6 +58,12 @@ in [verification.md](verification.md); it is not a new claim of platform accepta
 Confirm the remote revision and source tree after publishing. Keep source upload,
 binary packaging, live testing and installation as separate reported outcomes.
 
+The `Source checks` GitHub workflow validates task branches under `ui/` on both
+Windows and macOS before main integration. It runs Python/Lua contracts, hidden
+UI checks, and macOS native compilation plus a private synthetic pasteboard test.
+This provides the platform checks when the optional local shared pipeline is not
+available. Preserve both platforms' checks and verify the exact commit's result.
+
 ## Application packages
 
 Build from a fixed Git commit rather than an uncommitted working tree:
@@ -92,7 +98,9 @@ leaves the game AddOn and backups in place.
 
 `.github/workflows/windows-release.yml` runs when `release/windows.json` changes
 on `main`, or when explicitly dispatched on `main`. Increment the release revision
-for each new release attempt. The workflow uses a fresh macOS runner for Python/Lua
+for each new release attempt. Both the workflow and publishing command restrict
+binary releases to `szh101/Forever-companion-`; private source mirrors must never
+receive installer uploads. The workflow uses a fresh macOS runner for Python/Lua
 contracts and native compilation, then a Windows runner for fixed-source checks,
 packaging, hidden executable tests, synthetic installation/update/uninstall and
 payload privacy scanning. It does not use a developer's installed application or

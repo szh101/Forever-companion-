@@ -12,10 +12,12 @@ from .core import UserError
 MAC_EXECUTABLES = frozenset({"world of warcraft", "world of warcraft classic",
     "world of warcraft beta", "wow", "wowb", "wowt", "wowclassic", "wowclassicb", "wowforever"})
 ERRORS = {
-    "permission": "macOS 尚未允许录屏。点击「授予截图权限」，在系统设置中允许 Forever AI，然后重新打开应用。",
-    "windowChanged": "所选 WoW 窗口已关闭或身份发生变化，请刷新并重新选择。",
-    "unsupported": "单窗口截图需要 macOS 14 或更新版本；仍可导入截图文件。",
-    "captureFailed": "macOS 未能捕获选定窗口；没有回退到桌面。请恢复游戏窗口后重试，或导入截图。",
+    "permission": "Screen Recording is not allowed yet. Click Allow screen recording, enable Forever AI in System Settings, then reopen the app.",
+    "windowChanged": "The selected WoW window has closed or its identity has changed. Refresh the list and select it again.",
+    "unsupported": "Window capture requires macOS 14 or later. You can still import a screenshot file.",
+    "captureFailed": "macOS could not capture the selected window. No desktop capture was taken. Restore the game window and retry, or import a screenshot.",
+    "clipboardImageInvalid": "The screenshot is invalid. The clipboard was not updated.",
+    "clipboardFailed": "Could not write the screenshot to the macOS clipboard.",
 }
 
 
@@ -25,22 +27,28 @@ def helper_path() -> Path:
     return Path(__file__).resolve().parents[1] / ".runtime" / "native" / "forever-capture"
 
 
-def run_helper(*args: str, runner=None) -> bytes:
+def run_helper(*args: str, runner=None, input_bytes: bytes | None = None) -> bytes:
     helper = helper_path()
     if not helper.is_file() and runner is None:
-        raise UserError("截图组件尚未构建。请使用 Forever AI.app，或先运行 scripts/build_native.py。")
+        raise UserError("The capture helper has not been built. Use Forever AI.app or run scripts/build_native.py first.")
     try:
-        result = (runner or subprocess.run)([str(helper), *args], capture_output=True, timeout=20, check=False)
+        result = (runner or subprocess.run)([str(helper), *args], input=input_bytes,
+                                           capture_output=True, timeout=20, check=False)
     except (OSError, subprocess.TimeoutExpired):
-        raise UserError("macOS 截图组件未响应；未截取桌面，请重试或导入截图。") from None
+        if args == ("copy-image",):
+            raise UserError("The macOS clipboard helper did not respond. The screenshot is still available as an attachment.") from None
+        raise UserError("The macOS capture helper did not respond. No desktop capture was taken. Retry or import a screenshot.") from None
     if result.returncode:
         try:
             code = json.loads(result.stderr).get("error")
         except (ValueError, TypeError, AttributeError):
             code = None
-        raise UserError(ERRORS.get(code, "macOS 截图组件未完成操作；没有截取桌面。"))
+        fallback = ("The macOS clipboard helper did not complete the operation. The screenshot is still available as an attachment."
+                    if args == ("copy-image",) else
+                    "The macOS capture helper did not complete the operation. No desktop capture was taken.")
+        raise UserError(ERRORS.get(code, fallback))
     if len(result.stdout) > 20_000_000:
-        raise UserError("截图组件返回的数据过大。")
+        raise UserError("The capture helper returned too much data.")
     return result.stdout
 
 
@@ -59,7 +67,7 @@ def list_mac_windows():
                                           str(item.get("title") or "World of Warcraft")[:300], "darwin"))
         return windows
     except (ValueError, TypeError, AttributeError):
-        raise UserError("macOS 返回的窗口列表无效。") from None
+        raise UserError("macOS returned an invalid window list.") from None
 
 
 def request_permission():
@@ -68,7 +76,7 @@ def request_permission():
         data = json.loads(run_helper("request-permission"))
         return data.get("granted") is True
     except (ValueError, AttributeError):
-        raise UserError("无法确认 macOS 截图权限，请检查系统设置。") from None
+        raise UserError("Could not verify macOS capture permission. Check System Settings.") from None
 
 
 def capture_mac_window(window):
@@ -76,13 +84,13 @@ def capture_mac_window(window):
     from .capture import encode_image
     if (window.backend != "darwin" or window.hwnd <= 0 or window.pid <= 0
             or window.executable.lower() not in MAC_EXECUTABLES):
-        raise UserError("只能捕获已选择的本机 WoW 窗口。")
+        raise UserError("Select a local WoW window before capturing.")
     # The native helper rechecks executable/PID/window ID immediately before capture.
     raw = run_helper("capture", str(window.hwnd), str(window.pid), window.executable)
     if not raw.startswith(b"\x89PNG\r\n\x1a\n"):
-        raise UserError("macOS 没有返回有效窗口截图。")
+        raise UserError("macOS did not return a valid window screenshot.")
     try:
         with Image.open(io.BytesIO(raw)) as frame:
             return encode_image(frame, "selected local macOS WoW window (ScreenCaptureKit)")
     except (OSError, UnidentifiedImageError, Image.DecompressionBombError):
-        raise UserError("macOS 没有返回有效窗口截图。") from None
+        raise UserError("macOS did not return a valid window screenshot.") from None

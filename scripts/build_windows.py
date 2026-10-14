@@ -106,7 +106,7 @@ def main():
     if result.returncode or not evidence.get("passed"):
         raise SystemExit("Built executable failed its offline check; see " + str(check_report))
     shutil.copytree(source / "addon/ForeverAI", app / "addon/ForeverAI")
-    shutil.copyfile(source / "docs/windows.md", app / "Windows说明.md")
+    shutil.copyfile(source / "docs/windows.md", app / "Windows-guide.md")
     provenance = {"sourceCommit": actual, "version": version, "platform": "Windows", "architecture": "x64",
                   "signature": "unsigned local build", "hiddenBundleCheck": evidence,
                   "captureBackend": "Windows.Graphics.Capture (selected HWND)",

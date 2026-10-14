@@ -83,11 +83,14 @@ def prepare(root: Path, commit: str) -> dict:
     assets.append(checksums)
     notes = (
         "## Windows installation\n\n"
+        "The desktop interface is in English, including settings, tooltips and status messages. "
+        "AI replies still follow the language of your question.\n\n"
         "Download **ForeverAI-Setup-x64.exe** and run it. Python is included. "
         "The installer installs the desktop Companion and can also install the AddOn "
         "after you select your actual Forever game client folder. "
         "It does not install or sign in to an AI service.\n\n"
         "下载 **ForeverAI-Setup-x64.exe** 并运行，无需安装 Python。"
+        "桌面界面已改为英文，AI 仍按你的提问语言回答。"
         "安装向导安装桌面 Companion；选择实际使用的 Forever 游戏客户端目录后，"
         "也可同时安装 AddOn。AI 账号或 API Key 仍需由你自己配置。\n\n"
         "- Setup is an unsigned Windows x64 installer. Windows may display an unknown-publisher warning.\n"
@@ -160,10 +163,11 @@ def verify_tag_target(base: str, tag: str, commit: str, token: str, *, allow_mis
 
 def publish(release: dict) -> str:
     repository = os.environ.get("GITHUB_REPOSITORY", "")
-    if (os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("GITHUB_REF") != "refs/heads/main"
+    if (repository != "szh101/Forever-companion-"
+            or os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("GITHUB_REF") != "refs/heads/main"
             or os.environ.get("GITHUB_SHA") != release["commit"]
             or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository)):
-        raise ValueError("Publishing is restricted to the exact main commit in GitHub Actions")
+        raise ValueError("Publishing is restricted to the public repository's exact main commit in GitHub Actions")
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
         raise ValueError("GitHub Actions release token is unavailable")

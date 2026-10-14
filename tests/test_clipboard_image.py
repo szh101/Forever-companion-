@@ -1,4 +1,4 @@
-"""Synthetic byte buffers and fake Win32 only; never touch the real clipboard."""
+"""Synthetic buffers and mocked OS bridges; never touch the real clipboard."""
 import ctypes
 import io
 import struct
@@ -113,7 +113,7 @@ class ClipboardImageTests(unittest.TestCase):
 
     def test_busy_clipboard_frees_buffers_without_empty_or_close(self):
         fake = FakeClipboard(busy=True)
-        with self.assertRaisesRegex(UserError, "正忙"):
+        with self.assertRaisesRegex(UserError, "clipboard is busy"):
             _write_clipboard(b"png fixture", b"dib fixture", 123, api=(fake, fake))
         self.assertEqual(fake.buffers, {})
         self.assertFalse(any(c[0] in {"empty", "close", "set"} for c in fake.calls))
@@ -148,7 +148,7 @@ class ClipboardImageTests(unittest.TestCase):
         for failed in (1, 2):
             with self.subTest(failed=failed):
                 fake = FakeClipboard(set_fail_at=failed)
-                with self.assertRaisesRegex(UserError, "写入剪贴板失败"):
+                with self.assertRaisesRegex(UserError, "Could not write the screenshot"):
                     _write_clipboard(b"png", b"dib", 123, api=(fake, fake))
                 self.assertIn(("close",), fake.calls)
                 frees = [c[1] for c in fake.calls if c[0] == "free"]
@@ -173,7 +173,7 @@ class ClipboardImageTests(unittest.TestCase):
         raw = png_bytes()
         with patch("companion.clipboard_image.MAX_PIXELS", 10), \
              patch("PIL.PngImagePlugin.PngImageFile.load", side_effect=AssertionError("no decode")):
-            with self.assertRaisesRegex(UserError, "分辨率过大"):
+            with self.assertRaisesRegex(UserError, "resolution is too high"):
                 _prepare_image(raw)
 
     def test_resize_and_alpha_flattens_to_matching_png_and_dib(self):
@@ -189,10 +189,10 @@ class ClipboardImageTests(unittest.TestCase):
             with Image.open(io.BytesIO(data)) as image:
                 self.assertEqual(image.getpixel((239, 159)), (0, 0, 0))
 
-    def test_non_windows_invalid_owner_and_native_error_are_safe(self):
-        with patch("companion.clipboard_image.sys.platform", "darwin"), \
+    def test_unsupported_platform_invalid_owner_and_native_error_are_safe(self):
+        with patch("companion.clipboard_image.sys.platform", "linux"), \
              patch("companion.clipboard_image._win32_api") as native:
-            with self.assertRaisesRegex(UserError, "暂不支持"):
+            with self.assertRaisesRegex(UserError, "not supported on this platform"):
                 copy_screenshot_to_clipboard(png_bytes(), 123)
             native.assert_not_called()
         with patch("companion.clipboard_image.sys.platform", "win32"), \
@@ -206,6 +206,31 @@ class ClipboardImageTests(unittest.TestCase):
             with self.assertRaises(UserError) as raised:
                 copy_screenshot_to_clipboard(png_bytes(), 123)
             self.assertNotIn("private", str(raised.exception))
+
+    def test_mac_copies_normalized_png_over_stdin_without_windows_or_files(self):
+        from companion import mac_capture
+        with patch("companion.clipboard_image.sys.platform", "darwin"), \
+             patch("companion.clipboard_image._win32_api", side_effect=AssertionError("No Windows API")), \
+             patch.object(mac_capture, "run_helper", return_value=b'{"copied":true}') as helper:
+            copy_screenshot_to_clipboard(png_bytes(metadata=True), 0)
+        self.assertEqual(helper.call_args.args, ("copy-image",))
+        with Image.open(io.BytesIO(helper.call_args.kwargs["input_bytes"])) as image:
+            self.assertEqual(image.size, (240, 160))
+            self.assertNotIn("private", image.info)
+
+    def test_mac_rejects_invalid_images_before_native_clipboard(self):
+        with patch("companion.clipboard_image.sys.platform", "darwin"), \
+             patch("companion.mac_capture.run_helper") as helper:
+            for data in (b"not PNG", b"", png_bytes((50, 50))):
+                with self.assertRaises(UserError):
+                    copy_screenshot_to_clipboard(data, 0)
+            helper.assert_not_called()
+
+    def test_mac_clipboard_failure_remains_a_user_error(self):
+        with patch("companion.clipboard_image.sys.platform", "darwin"), \
+             patch("companion.mac_capture.run_helper", side_effect=UserError("The clipboard helper did not respond.")):
+            with self.assertRaisesRegex(UserError, "clipboard helper did not respond"):
+                copy_screenshot_to_clipboard(png_bytes(), 0)
 
 
 if __name__ == "__main__":

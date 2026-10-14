@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import tomllib
 import zipfile
 
 
@@ -20,7 +21,9 @@ def main():
         raise SystemExit("Commit mismatch")
     output = root / "dist"
     output.mkdir(exist_ok=True)
-    archive = output / ("ForeverAI-0.4.2-" + actual[:12] + ".zip")
+    version = tomllib.loads(subprocess.check_output(
+        ["git", "show", actual + ":pyproject.toml"], cwd=root).decode("utf-8"))["project"]["version"]
+    archive = output / ("ForeverAI-" + version + "-" + actual[:12] + ".zip")
     subprocess.run(["git", "archive", "--format=zip", "--prefix=ForeverAI/", "--output=" + str(archive), actual], cwd=root, check=True)
     with zipfile.ZipFile(archive) as z:
         for name in z.namelist():
@@ -30,7 +33,7 @@ def main():
         if z.testzip() is not None:
             raise SystemExit("Archive CRC verification failed")
         count = len(z.namelist())
-    manifest = {"version": "0.4.2", "sourceCommit": actual, "archive": archive.name,
+    manifest = {"version": version, "sourceCommit": actual, "archive": archive.name,
                 "sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "entries": count,
                 "status": "source archive only; publication is recorded separately by the shared pipeline; game-client verification pending"}
     archive.with_suffix(".json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

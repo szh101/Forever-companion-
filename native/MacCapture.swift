@@ -30,6 +30,29 @@ func executableName(_ pid: Int32) -> String? {
     NSRunningApplication(processIdentifier: pid)?.executableURL?.lastPathComponent
 }
 
+enum ClipboardError: Error {
+    case invalidImage, writeFailed
+}
+
+// Only already-captured, normalized PNG data reaches this function. It does not
+// read the clipboard, capture a screen, request permission, or activate an app.
+func copyPNG(_ data: Data, to pasteboard: NSPasteboard) throws {
+    guard !data.isEmpty, data.count <= 20_000_000,
+          let source = CGImageSourceCreateWithData(data as CFData, nil),
+          CGImageSourceGetType(source) as String? == UTType.png.identifier,
+          let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+          let width = properties[kCGImagePropertyPixelWidth] as? Int,
+          let height = properties[kCGImagePropertyPixelHeight] as? Int,
+          width >= 100, height >= 100, width <= 2048, height <= 2048,
+          CGImageSourceCreateImageAtIndex(source, 0, nil) != nil
+    else { throw ClipboardError.invalidImage }
+    let item = NSPasteboardItem()
+    guard item.setData(data, forType: .png) else { throw ClipboardError.writeFailed }
+    // Validate and prepare first; malformed input never clears existing data.
+    pasteboard.clearContents()
+    guard pasteboard.writeObjects([item]) else { throw ClipboardError.writeFailed }
+}
+
 // Metadata only. Does not request Screen Recording or activate any application.
 func listWindows() -> [WindowInfo] {
     guard let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
@@ -77,6 +100,7 @@ func capture(_ id: UInt32, _ pid: Int32, _ executable: String) async throws {
     FileHandle.standardOutput.write(data as Data)
 }
 
+#if !FOREVER_CLIPBOARD_TEST
 @main struct CaptureHelper {
     static func main() async {
         let args = Array(CommandLine.arguments.dropFirst())
@@ -85,6 +109,20 @@ func capture(_ id: UInt32, _ pid: Int32, _ executable: String) async throws {
             case "list": try sendJSON(listWindows())
             case "request-permission":
                 try sendJSON(["granted": CGPreflightScreenCaptureAccess() || CGRequestScreenCaptureAccess()])
+            case "copy-image":
+                guard args.count == 1 else { fail("clipboardImageInvalid") }
+                do {
+                    // Bounded stdin: never accept a model-selected file path.
+                    var data = Data()
+                    while data.count <= 20_000_000 {
+                        let chunk = try FileHandle.standardInput.read(upToCount: min(65_536, 20_000_001 - data.count)) ?? Data()
+                        if chunk.isEmpty { break }
+                        data.append(chunk)
+                    }
+                    try copyPNG(data, to: .general)
+                    try sendJSON(["copied": true])
+                } catch ClipboardError.invalidImage { fail("clipboardImageInvalid") }
+                catch { fail("clipboardFailed") }
             case "capture":
                 guard args.count == 4, let id = UInt32(args[1]), id > 0,
                       let pid = Int32(args[2]), pid > 0 else { fail("windowChanged") }
@@ -95,3 +133,4 @@ func capture(_ id: UInt32, _ pid: Int32, _ executable: String) async throws {
         } catch { fail("captureFailed") }
     }
 }
+#endif

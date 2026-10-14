@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   macos-check:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.repository == 'szh101/Forever-companion-'
     runs-on: macos-15
     timeout-minutes: 20
     steps:
@@ -33,8 +33,11 @@ jobs:
         run: python scripts/check.py
       - name: Compile macOS capture helper without running it
         run: python scripts/build_native.py
+      - name: Check native clipboard on a private synthetic pasteboard
+        run: python scripts/check_macos_clipboard.py
 
   windows-release:
+    if: github.repository == 'szh101/Forever-companion-'
     needs: macos-check
     # The capture source uses WinRT metadata introduced in Windows build 26100.
     runs-on: windows-2025

@@ -86,7 +86,7 @@ class WindowsOverlay:
             try:
                 self.api.update_targets(targets, self.suspended)
             except Exception:
-                self._fail("窗口交互初始化失败，已恢复普通窗口。")
+                self._fail("Window interaction could not initialize. Restored normal window behavior.")
 
     def start(self):
         if self.closed or self.active:
@@ -103,7 +103,7 @@ class WindowsOverlay:
             self._after = self.root.after(16, self._pump)
             return True
         except Exception:
-            self._fail("窗口交互初始化失败，已恢复普通窗口。")
+            self._fail("Window interaction could not initialize. Restored normal window behavior.")
             return False
 
     def _enqueue(self, event):
@@ -208,7 +208,7 @@ class WindowsOverlay:
                     continue
                 self.on_event(event)
         except Exception:
-            self._fail("窗口交互失败，已恢复普通窗口。")
+            self._fail("Window interaction failed. Restored normal window behavior.")
             return
         if self.active and not self.closed:
             self._after = self.root.after(16, self._pump)

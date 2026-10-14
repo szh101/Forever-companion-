@@ -78,19 +78,19 @@ def list_windows() -> list[GameWindow]:
         return True
 
     if not user.EnumWindows(visit, 0):
-        raise UserError("Windows 无法列出游戏窗口。")
+        raise UserError("Windows could not list game windows.")
     return windows
 
 
 def encode_image(image, label: str, captured_at=None) -> Screenshot:
     from PIL import ImageStat
     if image.width < 100 or image.height < 100 or image.width * image.height > 40_000_000:
-        raise UserError("捕获的窗口大小无效，请恢复游戏窗口。")
+        raise UserError("The captured window size is invalid. Restore the game window and try again.")
     image = image.convert("RGB")
     # Reject obvious blank frames; this does not prove that every frame is fresh.
     stat = ImageStat.Stat(image.resize((64, 64)))
     if max(stat.stddev) < 1:
-        raise UserError("截图接近全黑或纯色。请使用无边框窗口并先预览；也可选择游戏截图文件。")
+        raise UserError("The screenshot is nearly black or a solid color. Try borderless windowed mode and preview again, or import a game screenshot.")
     image.thumbnail((2048, 2048))
     buffer = io.BytesIO()
     image.save(buffer, "PNG")  # re-encode; discard file metadata
@@ -102,13 +102,13 @@ def capture_window(window: GameWindow, *, enumerator=None, grabber=None) -> Scre
         from .mac_capture import capture_mac_window
         return capture_mac_window(window)
     if window.executable not in WOW_EXECUTABLES or window.hwnd <= 0:
-        raise UserError("只能捕获已选择的 WoW 窗口。")
+        raise UserError("Select a WoW window before capturing.")
     if sys.platform != "win32" and grabber is None:
-        raise UserError("此窗口不是本机支持的窗口；请刷新列表或导入截图。")
+        raise UserError("This window is not supported on this computer. Refresh the list or import a screenshot.")
     # Revalidate process identity every capture; HWNDs can be reused after exit.
     current = next((x for x in (enumerator or list_windows)() if x.hwnd == window.hwnd), None)
     if current is None or current.pid != window.pid or current.executable != window.executable:
-        raise UserError("所选 WoW 窗口已关闭或发生变化，请刷新窗口列表并重新选择。")
+        raise UserError("The selected WoW window has closed or changed. Refresh the window list and select it again.")
     try:
         if grabber is None:
             from .windows_capture import grab_window
@@ -118,11 +118,11 @@ def capture_window(window: GameWindow, *, enumerator=None, grabber=None) -> Scre
     except UserError:
         raise
     except Exception:
-        raise UserError("无法捕获选定窗口；没有回退到整个桌面。请改用无边框窗口或导入截图。") from None
+        raise UserError("Could not capture the selected window. No desktop capture was taken. Try borderless windowed mode or import a screenshot.") from None
     # A window may close/reuse its handle while the helper is waiting for a frame.
     current = next((x for x in (enumerator or list_windows)() if x.hwnd == window.hwnd), None)
     if current is None or current.pid != window.pid or current.executable != window.executable:
-        raise UserError("截图期间游戏窗口发生变化，请刷新并重新选择。")
+        raise UserError("The game window changed during capture. Refresh the list and select it again.")
     return encode_image(frame, "selected WoW window (Windows Graphics Capture)")
 
 
@@ -130,12 +130,12 @@ def load_image(path: str) -> Screenshot:
     from PIL import Image, UnidentifiedImageError
     p = Path(path)
     if p.stat().st_size > 20_000_000:
-        raise UserError("图片文件超过 20 MB。")
+        raise UserError("The image file exceeds 20 MB.")
     try:
         with Image.open(p) as img:
             if img.width * img.height > 40_000_000:
-                raise UserError("图片分辨率过大。")
+                raise UserError("The image resolution is too high.")
             img.load()
             return encode_image(img, "user-selected file (original capture time unknown)")
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
-        raise UserError("无法读取图片；请选择有效的 PNG 或 JPEG 游戏截图。") from None
+        raise UserError("Could not read the image. Select a valid PNG or JPEG game screenshot.") from None

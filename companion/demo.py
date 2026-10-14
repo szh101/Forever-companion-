@@ -5,14 +5,14 @@ import time
 def snapshot():
     return {"kind": "forever-ai-snapshot", "schemaVersion": 1, "demo": True,
             "capturedAt": int(time.time()), "client": {"version": "UI-DEMO, not a real game build"},
-            "player": {"level": 12, "zone": "示例营地（虚构）"},
+            "player": {"level": 12, "zone": "Example camp (fictional)"},
             "quests": [
-                {"id": 900001, "title": "示例：营地补给", "complete": True,
-                 "objectives": [{"text": "收集补给 6/6", "finished": True}]},
-                {"id": 900002, "title": "示例：森林采集", "complete": False,
-                 "objectives": [{"text": "采集材料 2/8", "finished": False}]},
-                {"id": 900003, "title": "示例：遗迹探索", "complete": False,
-                 "objectives": [{"text": "寻找遗迹线索 0/1", "finished": False}]}]}
+                {"id": 900001, "title": "Example: Camp Supplies", "complete": True,
+                 "objectives": [{"text": "Collect supplies 6/6", "finished": True}]},
+                {"id": 900002, "title": "Example: Forest Gathering", "complete": False,
+                 "objectives": [{"text": "Gather materials 2/8", "finished": False}]},
+                {"id": 900003, "title": "Example: Explore the Ruins", "complete": False,
+                 "objectives": [{"text": "Find clues in the ruins 0/1", "finished": False}]}]}
 
 
 def example_picture():
@@ -33,4 +33,4 @@ def example_picture():
     draw.text((30, 302), 'UI preview only - not an actual game map', fill='#95adbb', font_size=19)
     data = io.BytesIO()
     picture.save(data, 'PNG')
-    return ReplyImage(data.getvalue(), '离线示例 · 虚构任务流程，非游戏地图')
+    return ReplyImage(data.getvalue(), 'Offline example · Fictional quest flow, not a game map')

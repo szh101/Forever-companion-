@@ -343,7 +343,7 @@ class OverlayUIContractTests(unittest.TestCase):
         self.assertEqual(app.root.decorations, [True, False])
         backend.close.assert_called_once_with()
         backend.activate_input.assert_not_called()
-        app.status.set.assert_called_once_with("穿透模式未能启动，已恢复普通窗口。")
+        app.status.set.assert_called_once_with("Click-through mode could not start. Restored normal window behavior.")
         self.assertEqual(len(app.root.scheduled), scheduled)
 
     def test_layout_excludes_plain_chat_and_hidden_or_outside_widgets(self):

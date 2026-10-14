@@ -68,7 +68,7 @@ class AutomaticImageTests(unittest.TestCase):
                 with self.subTest(provider=provider, screenshot="screenshot" in config), patch("companion.image_tools.generate_image") as generate:
                     answer, body = self.call(provider, response(provider, calls=[("generate_illustration", {"prompt": "图"})]), **config)
                     self.assertNotIn("tools", body)
-                    self.assertIn("本次未生成", answer.text)
+                    self.assertEqual("No image was generated.", answer.text)
                     generate.assert_not_called()
 
     def test_invalid_multiple_or_incomplete_tool_calls_never_spend_on_images(self):

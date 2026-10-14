@@ -1,6 +1,6 @@
 # Windows verification scope
 
-The companion implementation in this snapshot passed **156 checks: 155 passed,
+The previous 0.4.2 release passed **156 checks: 155 passed,
 1 skipped**, with no failures or errors. The full hidden GUI check also passed.
 The skipped case is the generic symlink test; Windows-specific junction and
 hard-link rejection tests ran and passed, including files addressed through Windows
