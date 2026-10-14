@@ -39,20 +39,20 @@ def bundle_check(report):
         assert app.fold_button.master.winfo_reqwidth() <= app.px(268)
         root.clipboard_get = lambda: json.dumps(snapshot())
         app.paste_button.invoke()
-        assert "已收到 3 个任务" in app.chat.get("1.0", "end")
+        assert "Snapshot received: 3 quests" in app.chat.get("1.0", "end")
         app.input.insert("1.0", "Windows offline bundle test")
         root.clipboard_get = lambda: '{"kind":"forever-ai-snapshot","schemaVersion":999}'
         app.paste_button.invoke()
         assert len(app.snapshot["quests"]) == 3
         assert app.input.get("1.0", "end").strip() == "Windows offline bundle test"
-        assert "没有导入" in app.chat.get("1.0", "end")
+        assert "Import failed" in app.chat.get("1.0", "end")
         app.send()
         deadline = time.monotonic() + 10
         while app.busy and time.monotonic() < deadline:
             root.update()
             time.sleep(0.02)
         assert not app.busy and len(app.picture_widgets) == 1
-        assert "没有调用 AI" in app.chat.get("1.0", "end")
+        assert "no AI request or network connection was made" in app.chat.get("1.0", "end")
         app.toggle_collapsed()
         assert root.minsize() == (app.px(280), app.px(40))
         app.toggle_collapsed()

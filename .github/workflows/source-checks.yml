@@ -42,3 +42,7 @@ jobs:
         run: |
           python scripts/build_native.py
           python scripts/check_macos_clipboard.py
+      - name: Check Windows application entry point with synthetic input
+        if: runner.os == 'Windows'
+        timeout-minutes: 2
+        run: python -X utf8 scripts/windows_entry.py --self-test-report .runtime/source-entry-check.json

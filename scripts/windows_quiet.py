@@ -55,7 +55,7 @@ def main():
                 while app.busy and time.monotonic() < deadline:
                     root.update()
                     time.sleep(0.03)
-                if app.busy or "没有调用 AI" not in app.chat.get("1.0", "end"):
+                if app.busy or "no AI request or network connection was made" not in app.chat.get("1.0", "end"):
                     raise RuntimeError("Demo request did not finish")
                 if root.state() != "withdrawn":
                     raise RuntimeError("Window became visible")
