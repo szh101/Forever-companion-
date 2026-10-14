@@ -79,8 +79,12 @@ def main():
     script = work / "ForeverAI.iss"
     source_script = subprocess.check_output(["git", "show", actual + ":installer/ForeverAI.iss"], cwd=root)
     script.write_text(source_script.decode("utf-8-sig"), encoding="utf-8-sig")
+    language = work / "ChineseSimplified.isl"
+    language.write_bytes(subprocess.check_output(
+        ["git", "show", actual + ":installer/languages/ChineseSimplified.isl"], cwd=root))
     result = subprocess.run([str(args.iscc.resolve()), "/Qp", "/DBundleDir=" + str(app),
-                             "/DAppVersion=" + version, "/DOutputDir=" + str(output), str(script)],
+                             "/DAppVersion=" + version, "/DOutputDir=" + str(output),
+                             "/DChineseMessagesFile=" + str(language), str(script)],
                             cwd=root, capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
     (work / "compiler.log").write_bytes(result.stdout + result.stderr)
     if result.returncode or not executable.is_file():

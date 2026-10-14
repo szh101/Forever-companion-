@@ -8,6 +8,9 @@
 #ifndef OutputDir
   #error OutputDir is required
 #endif
+#ifndef ChineseMessagesFile
+  #error ChineseMessagesFile is required
+#endif
 
 [Setup]
 AppId={{4F771654-D939-49BE-B03B-D459CAAEBCED}
@@ -37,7 +40,7 @@ SetupLogging=yes
 
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
-Name: "zhCN"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "zhCN"; MessagesFile: "{#ChineseMessagesFile}"
 
 [CustomMessages]
 en.DesktopShortcut=Create a desktop shortcut
