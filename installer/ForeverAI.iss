@@ -164,6 +164,10 @@ end;
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
+  { Silent setup also simulates Next. Do not show a custom modal or stop on a
+    hidden page: PrepareToInstall performs the same validation and returns the
+    standard noninteractive failure exit code under /SUPPRESSMSGBOXES. }
+  if WizardSilent then Exit;
   if (CurPageID = GamePage.ID) and AddonPage.Values[0] then begin
     Result := ValidGameFolder(GamePage.Values[0]);
     if not Result then MsgBox(CustomMessage('InvalidGame'), mbError, MB_OK);

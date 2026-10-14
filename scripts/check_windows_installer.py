@@ -16,7 +16,8 @@ def main():
     args = parser.parse_args()
     if sys.platform != "win32" or os.environ.get("CI", "").lower() != "true":
         raise SystemExit("Run this installer check on an isolated Windows CI runner (CI=true)")
-    work = Path(tempfile.mkdtemp(prefix="forever-installer-check-"))
+    args.report.parent.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix="forever-installer-check-", dir=args.report.parent.resolve()))
     client = work / "synthetic client 中文"
     addons = client / "Interface/AddOns"
     client.mkdir()
@@ -25,15 +26,52 @@ def main():
     destination = work / "companion application"
     checks = []
 
+    def show_log(name):
+        path = work / (name + ".log")
+        if not path.is_file():
+            print(f"Installer log {name}: not created", flush=True)
+            return
+        # Only the known synthetic operation's log is read, with a bounded tail.
+        with path.open("rb") as stream:
+            stream.seek(0, 2)
+            stream.seek(max(0, stream.tell() - 16384))
+            tail = stream.read(16384)
+        print(f"Installer log {name} (last 16 KiB):\n" + tail.decode("utf-8-sig", errors="replace"),
+              flush=True)
+
+    def run_installer(command, name, success=True):
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   creationflags=subprocess.CREATE_NO_WINDOW)
+        try:
+            stdout, stderr = process.communicate(timeout=180 if success else 45)
+        except subprocess.TimeoutExpired:
+            # Inno's loader can spawn a .tmp child. Kill only this process tree,
+            # launched here on the disposable CI runner; never match by name.
+            if process.poll() is None:
+                try:
+                    subprocess.run(["taskkill.exe", "/PID", str(process.pid), "/T", "/F"],
+                                   capture_output=True, timeout=15, creationflags=subprocess.CREATE_NO_WINDOW)
+                except (OSError, subprocess.TimeoutExpired) as error:
+                    print("CI process cleanup failed: " + type(error).__name__, flush=True)
+            try:
+                process.communicate(timeout=10)
+            except subprocess.TimeoutExpired:
+                if process.poll() is None:
+                    process.kill()
+            show_log(name)
+            raise AssertionError(f"{name}: silent installer timed out") from None
+        if (process.returncode == 0) != success:
+            show_log(name)
+            print((stdout + stderr)[-8192:].decode("utf-8", errors="replace"), flush=True)
+            raise AssertionError(f"{name}: unexpected exit {process.returncode}")
+        return process.returncode
+
     def install(name, game=client, addon=True, success=True, lang="en"):
         command = [str(args.installer.resolve()), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART",
                    "/SP-", "/NOICONS", "/TASKS=", "/LANG=" + lang, "/DIR=" + str(destination),
                    "/INSTALLADDON=" + ("yes" if addon else "no"), "/GAMECLIENT=" + str(game),
                    "/LOG=" + str(work / (name + ".log"))]
-        result = subprocess.run(command, capture_output=True, timeout=180,
-                                creationflags=subprocess.CREATE_NO_WINDOW)
-        if (result.returncode == 0) != success:
-            raise AssertionError(f"{name}: unexpected exit {result.returncode}; logs: {work}")
+        run_installer(command, name, success)
         checks.append(name)
 
     def verify_addon():
@@ -90,10 +128,8 @@ def main():
         linked.rmdir()  # Remove only the junction itself, never its target.
     verify_addon()
     uninstaller = destination / "unins000.exe"
-    result = subprocess.run([str(uninstaller), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART",
-                             "/LOG=" + str(work / "uninstall.log")], capture_output=True, timeout=180,
-                            creationflags=subprocess.CREATE_NO_WINDOW)
-    assert result.returncode == 0
+    run_installer([str(uninstaller), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART",
+                   "/LOG=" + str(work / "uninstall.log")], "uninstall")
     assert not (destination / "Forever AI.exe").exists()
     verify_addon()
     assert (backups[0] / "custom-note.txt").read_bytes() == b"original local note"
