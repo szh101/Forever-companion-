@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: Forever AI | Snapshot
+## Notes: User-initiated character and gameplay snapshot with explicit coverage.
+## Author: Forever AI contributors
+## Version: 0.3.0
+
+ForeverAI.lua
+Snapshot.lua

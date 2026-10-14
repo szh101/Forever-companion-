@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "projectId": "wow-forever-ai",
+  "sourceControl": {
+    "remote": "origin",
+    "url": "https://github.com/szh101/Forever-companion-.git",
+    "branch": "main"
+  },
+  "tasks": {
+    "check": [
+      {
+        "id": "python-and-lua-contracts",
+        "command": ["uv", "--cache-dir", "/private/tmp/wow-forever-ai-uv-cache", "run", "--locked", "--group", "dev", "python", "scripts/check.py"],
+        "timeoutMs": 180000
+      },
+      {
+        "id": "macos-screencapturekit-build",
+        "command": ["uv", "--cache-dir", "/private/tmp/wow-forever-ai-uv-cache", "run", "--locked", "python", "scripts/build_native.py"],
+        "timeoutMs": 180000
+      }
+    ]
+  }
+}
