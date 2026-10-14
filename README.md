@@ -156,7 +156,9 @@ uv run --locked python scripts/gui_smoke.py
 
 Standalone builds use a fixed Git commit: `scripts/build_windows.py` on Windows or `scripts/build_macos.py` on Mac, each with `--commit FULL_COMMIT_SHA` and the appropriate platform toolchain. Build artifacts and runtime data are not committed to Git.
 
-The release source passed 155 automated Windows checks with one platform-dependent check skipped, plus hidden UI and packaged application checks. The macOS contract suite passed 150 checks with six platform-specific skips, and its native capture helper compiled. Installation and update checks use a synthetic game directory. These checks do not exercise a running game, live AI requests or the visible macOS interface.
+The 0.4.3 source at [`c6ada6424c2f`](https://github.com/szh101/Forever-companion-/commit/c6ada6424c2f73cbca1adb9503f4dbfabaec8fa1) passed 160 of 161 Windows checks, with one platform-dependent skip, and 155 of 161 macOS checks, with six Windows-specific skips. Hidden UI checks passed on both platforms. The Windows entry-point self-test, macOS native helper build and macOS private-pasteboard checks also passed. See the [source check run](https://github.com/szh101/Forever-companion-/actions/runs/38533867098).
+
+Package and installer results are recorded separately in the [verification notes](docs/verification.md). Installation and update checks use a synthetic game directory. These checks do not test a running game, send live AI requests or establish visible macOS interface acceptance.
 
 - [Architecture and integration boundaries](docs/architecture.md)
 - [Snapshot coverage and limitations](docs/snapshot.md)

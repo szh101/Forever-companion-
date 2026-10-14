@@ -156,7 +156,9 @@ uv run --locked python scripts/gui_smoke.py
 
 独立应用从固定 Git 提交构建：Windows 使用 `scripts/build_windows.py`，Mac 使用 `scripts/build_macos.py`，均需 `--commit FULL_COMMIT_SHA` 和对应平台工具链。构建产物与运行数据不提交 Git。
 
-发布源码通过了 155 项 Windows 自动化检查，1 项平台相关检查跳过，隐藏界面及打包应用检查通过。macOS 合约检查通过 150 项、跳过 6 项平台相关检查，原生截图组件编译通过。安装与升级检查使用虚构游戏目录；这些检查不涉及运行中的游戏、真实 AI 请求或 macOS 可见界面验收。
+0.4.3 源码 [`c6ada6424c2f`](https://github.com/szh101/Forever-companion-/commit/c6ada6424c2f73cbca1adb9503f4dbfabaec8fa1) 在 Windows 的 161 项检查中通过 160 项，跳过 1 项平台相关检查；在 macOS 的 161 项检查中通过 155 项，跳过 6 项 Windows 专用检查。两平台的隐藏界面检查均通过，Windows 应用入口自检、macOS 原生组件编译与私有粘贴板检查也通过。详见[源码检查记录](https://github.com/szh101/Forever-companion-/actions/runs/38533867098)。
+
+打包应用与安装器的检查结果单独记载于[验证记录](docs/verification.md)。安装与升级检查使用虚构游戏目录；这些检查不涉及运行中的游戏、真实 AI 请求或 macOS 可见界面验收。
 
 - [架构与接口边界](docs/architecture.md)
 - [快照内容和限制](docs/snapshot.md)

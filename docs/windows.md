@@ -225,11 +225,19 @@ checks in place.
 
 ## Verification scope
 
-The previously released 0.4.2 source passed 155 of 156 offline Windows checks;
-one generic symbolic-link test was skipped for the platform. Hidden GUI checks
-also passed. On macOS, 150 checks passed, six Windows-specific checks were
-skipped, and the native helper compiled. These are recorded results for the
-earlier release, not validation of the new 0.4.3 interface.
+The 0.4.3 source at
+[`c6ada6424c2f`](https://github.com/szh101/Forever-companion-/commit/c6ada6424c2f73cbca1adb9503f4dbfabaec8fa1)
+passed 160 of 161 offline Windows checks; one generic symbolic-link test was
+skipped for the platform. On macOS, 155 of 161 checks passed and six
+Windows-specific checks were skipped. Hidden GUI checks passed on both platforms.
+The Windows entry-point self-test, macOS native helper build and macOS
+private-pasteboard checks also passed. These results are recorded in the
+[source check run](https://github.com/szh101/Forever-companion-/actions/runs/38533867098).
+
+Package and installer checks are separate from source checks. Their results are
+recorded in the
+[verification notes](https://github.com/szh101/Forever-companion-/blob/main/docs/verification.md).
+Installation and update checks use a synthetic game directory.
 
 Real game capture, scrolling, dragging, click-through, focus transfer and client
 AddOn export require separate validation. The visible macOS interface and real

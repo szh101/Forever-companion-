@@ -1,15 +1,21 @@
 # Windows verification scope
 
-The previous 0.4.2 release passed **156 checks: 155 passed,
+The 0.4.3 release passed **161 checks: 160 passed,
 1 skipped**, with no failures or errors. The full hidden GUI check also passed.
 The skipped case is the generic symlink test; Windows-specific junction and
 hard-link rejection tests ran and passed, including files addressed through Windows
 8.3 short path aliases.
 
-The released installer is [v0.4.2-windows.5](https://github.com/szh101/Forever-companion-/releases/tag/v0.4.2-windows.5),
-built from `7cc94d9c895459968d7e021b103e2fea5cb239e4`. Both jobs in
-[the release workflow](https://github.com/szh101/Forever-companion-/actions/runs/38528669848)
+The released installer is [v0.4.3-windows.2](https://github.com/szh101/Forever-companion-/releases/tag/v0.4.3-windows.2),
+built from `c6ada6424c2f73cbca1adb9503f4dbfabaec8fa1`. Both jobs in
+[the release workflow](https://github.com/szh101/Forever-companion-/actions/runs/38534145251)
 completed successfully.
+
+[Source checks](https://github.com/szh101/Forever-companion-/actions/runs/38533867098)
+also passed on Windows and macOS, including English control labels, narrow-window
+wrapping, hidden UI behavior and the Windows application entry point. macOS
+passed 155 of 161 contracts with six Windows-specific skips, native compilation
+and clipboard-image checks on a private synthetic pasteboard.
 
 ## Covered by offline checks
 
