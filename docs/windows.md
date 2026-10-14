@@ -39,10 +39,16 @@ Windows 剪贴板历史或同步是否保存它取决于用户系统设置；助
 
 ## 使用独立应用
 
+推荐下载 [ForeverAI-Setup-x64.exe](https://github.com/szh101/Forever-companion-/releases/latest/download/ForeverAI-Setup-x64.exe)。
+中英文安装向导会安装桌面助手，并可将 AddOn 安装到你选定的 Forever 客户端。
+无需安装 Python 或编译截图组件。首次安装插件后，由你自行完整重启游戏使其加载。
+更新时，旧插件目录保存在该客户端的 `Interface/ForeverAI-backups`；卸载助手保留插件和备份。
+
+选择便携版 ZIP 时，
 保留整个 `Forever AI` 文件夹，双击其中的 `Forever AI.exe`，或使用桌面快捷方式。
 无需安装 Python。`_internal` 是应用的一部分，不可只复制单独的 exe。
-当前源码不包含可下载的签名安装包。请按 [README](../README.md) 查看实际发布状态；
-本地构建未经过代码签名，不应通过修改 Windows 安全设置来掩盖这一点。
+公开 Windows 安装包目前未经过代码签名，Windows 可能显示未知发布者或信誉提示。
+请按 [README](../README.md) 查看下载与使用步骤。
 
 检测到官方 Codex CLI 时默认使用 Codex（已登录）；认证由官方 CLI 管理。
 Windows 优先使用 PATH 中的 CLI；找不到时，检查 `%USERPROFILE%\AppData\Local\OpenAI\Codex\bin\*\codex.exe`。
@@ -116,7 +122,8 @@ exe 的 `--self-test-report` 检查，产物和清单位于 `dist/windows-<commi
 
 ## 验证范围
 
-当前实现通过 155 项离线检查中的 154 项，1 项通用符号链接用例按平台跳过，隐藏 GUI 通过。
+当前实现通过 156 项离线检查中的 155 项，1 项通用符号链接用例按平台跳过，隐藏 GUI 通过。
 真实游戏截图、滚轮、拖动、穿透和焦点交接，以及客户端 addon 导出仍需单独验证。
-近期共享 UI 改动尚待 Mac 检查。详细范围见 [Windows 验证记录](windows-verification.md)，
+Mac 合约检查通过 150 项、跳过 6 项 Windows 专用检查，原生组件编译通过；可见界面和真实截图仍需验收。
+详细范围见 [Windows 验证记录](windows-verification.md)，
 安装步骤见 [README](../README.md)。这些结果不表示下载者的电脑已经安装或验证。

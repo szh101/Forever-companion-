@@ -10,33 +10,34 @@ This is a development prototype: Companion **0.4.2**, AddOn **0.3.0**. The AddOn
 
 ## Which download should I choose?
 
-**There is currently no published installer or binary Release on GitHub, and no one-click installation. Download the source and follow the steps below.**
+**Windows 10 (2004+) / 11 x64: [download ForeverAI-Setup-x64.exe](https://github.com/szh101/Forever-companion-/releases/latest/download/ForeverAI-Setup-x64.exe).** One setup wizard installs the desktop Companion and game AddOn. Python and the screenshot helper are included; no source download or compilation is needed.
 
-- Open the [repository](https://github.com/szh101/Forever-companion-), choose **Code → Download ZIP**, and extract the entire archive.
-- For the game AddOn alone, use the extracted **`addon/ForeverAI`** folder.
-- For AI chat, also start the **Companion** using the Windows or macOS instructions below. The AddOn does not connect to AI by itself.
-- Git users can clone the repository instead:
+1. Run **`ForeverAI-Setup-x64.exe`** and choose English or Simplified Chinese.
+2. Keep the AddOn option selected and choose the **Forever client folder containing `Wow.exe` or `WowClassic.exe`**. Select the client you actually play, not the Battle.net launcher folder. You can skip the AddOn if you only want the Companion.
+3. Finish installation and open **Forever AI** from the Start menu or desktop shortcut.
+4. On the next full game launch, enable **Forever AI | Snapshot** in the AddOns list. Continue with [Connect AI](#3-connect-ai), then [Ask your first question](#4-ask-your-first-question).
 
-```sh
-git clone https://github.com/szh101/Forever-companion-.git
-cd Forever-companion-
-```
+You still need your own model account or API key. The installer does not log in for you or restart the game. This first installer is unsigned; Windows may show an unknown-publisher or reputation notice.
 
-The `main` source includes the compact overlay and the screenshot, scrolling and focus features described below.
+When updating the AddOn, setup preserves its previous folder in the client's `Interface/ForeverAI-backups`. Uninstalling the Companion leaves the game AddOn and these backups in place.
 
-Future standalone builds will appear in [GitHub Releases](https://github.com/szh101/Forever-companion-/releases). The existing build scripts use the following filenames. **These describe how to recognize future downloads; they are not currently published assets.**
+Other downloads are on the [Releases page](https://github.com/szh101/Forever-companion-/releases):
 
-| Platform | Standalone application filename | After extracting |
-| --- | --- | --- |
-| Windows x64 | `ForeverAI-Windows-x64-<commit>.zip` | Keep the entire `Forever AI` folder and run `Forever AI.exe` inside it. Do not move or delete `_internal`. Copy the included `addon/ForeverAI` into the game directory separately. |
-| macOS 14+ | `ForeverAI-macOS-<architecture>-<commit>.zip` | Choose the build matching your computer's architecture and open `Forever AI.app`. Install the AddOn separately from the source's `addon/ForeverAI` folder. Current Mac packaging uses ad-hoc signing and is not Apple-notarized. |
+| Download | Use it for |
+| --- | --- |
+| **`ForeverAI-Setup-x64.exe`** | Recommended Windows installation, including the optional AddOn. |
+| `ForeverAI-Windows-x64-<commit>.zip` | Portable Windows app. Keep the entire `Forever AI` folder and launch `Forever AI.exe`; install the included AddOn manually. |
+| `ForeverAI-AddOn-*.zip` | Game AddOn only; extract `ForeverAI` into the client's `Interface/AddOns` folder. |
+| `SHA256SUMS.txt` | Checksums for the release downloads. |
 
-Standalone packages do not require Python. GitHub's automatic **Source code (zip / tar.gz)** downloads contain source, not a standalone application.
+**macOS:** a Mac installer is not included in this Windows release. Use the [macOS source instructions](#macos) below. GitHub's **Code → Download ZIP** and automatic **Source code (zip / tar.gz)** downloads are for source installation and development.
 
 ## 1. Install the game AddOn
 
+**The Windows installer can do this for you.** These manual steps are for portable, AddOn-only and source downloads.
+
 1. Locate the **Forever client you actually launch**, then open its `Interface/AddOns` directory. A folder name such as `_retail_`, `_classic_` or `_classic_beta_` alone does not establish compatibility.
-2. Copy the entire **`addon/ForeverAI`** folder from the downloaded source into it. Before updating, you can back up the old AddOn outside the game directory.
+2. Copy the entire **`ForeverAI`** folder from the AddOn ZIP, or **`addon/ForeverAI`** from the portable/source download, into it. Before a manual update, you can back up the old AddOn outside the game directory.
 3. Check this layout. There must not be an extra nested folder:
 
 ```text
@@ -49,13 +50,20 @@ Standalone packages do not require Python. GitHub's automatic **Source code (zip
 4. For a **first installation**, fully quit and restart the game. Enable **Forever AI | Snapshot** in the character selection screen's AddOns list. When updating an already loaded AddOn, you can usually run `/reload` manually instead.
 5. Enter the game and type **`/fai`** while out of combat. The copy panel confirms that the AddOn loaded.
 
-Starting the Companion does not install the AddOn. If it is missing, check the client version, installation path and all three files above.
+If the AddOn is missing, check the selected client version, installation path and all three files above. Starting the Companion itself does not install the AddOn.
 
 ## 2. Start the desktop Companion
 
-These are the **currently available source installation instructions**. Installing dependencies requires internet access.
+**Installer users:** open Forever AI from its shortcut and continue to [Connect AI](#3-connect-ai). The following source instructions are optional for Windows and currently required for macOS. Installing source dependencies requires internet access.
 
-### Windows
+### Windows source installation (optional)
+
+Download and extract the source from **Code → Download ZIP**, or clone it:
+
+```sh
+git clone https://github.com/szh101/Forever-companion-.git
+cd Forever-companion-
+```
 
 1. Install [Python 3.11 or newer](https://www.python.org/downloads/windows/) with **Tcl/Tk** and the **Python launcher**. An x64 installation is recommended.
 2. In the fully extracted project folder, double-click **`setup-windows.cmd`** and wait for dependency installation. This creates a project-local `.venv`.
@@ -71,7 +79,7 @@ If the build dependencies or capture helper are unavailable, you can still use A
 
 ### macOS
 
-Install [Python 3.11 or newer](https://www.python.org/downloads/macos/) with **Tcl/Tk**. In Terminal, enter the extracted project directory and run:
+Download and extract the source using **Code → Download ZIP**. Install [Python 3.11 or newer](https://www.python.org/downloads/macos/) with **Tcl/Tk**. In Terminal, enter the extracted project directory and run:
 
 ```sh
 python3 -m venv .venv
@@ -148,7 +156,7 @@ uv run --locked python scripts/gui_smoke.py
 
 Standalone builds use a fixed Git commit: `scripts/build_windows.py` on Windows or `scripts/build_macos.py` on Mac, each with `--commit FULL_COMMIT_SHA` and the appropriate platform toolchain. Build artifacts and runtime data are not committed to Git.
 
-The current source passed 154 automated Windows checks, with one platform-dependent check skipped, and a hidden UI smoke test. These checks did not exercise a running game or live AI requests. The latest shared interface changes still need macOS validation.
+The release source passed 155 automated Windows checks with one platform-dependent check skipped, plus hidden UI and packaged application checks. The macOS contract suite passed 150 checks with six platform-specific skips, and its native capture helper compiled. Installation and update checks use a synthetic game directory. These checks do not exercise a running game, live AI requests or the visible macOS interface.
 
 - [Architecture and integration boundaries](docs/architecture.md)
 - [Snapshot coverage and limitations](docs/snapshot.md)

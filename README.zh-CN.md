@@ -10,33 +10,34 @@ Forever AI 由一个只读的游戏插件（AddOn）和一个游戏外的聊天�
 
 ## 下载哪个？
 
-**目前 GitHub 没有已发布的安装包或二进制 Release，也没有一键安装器。现在请下载源码，按下面的步骤安装。**
+**Windows 10（2004 及以上）／11 x64：[下载 ForeverAI-Setup-x64.exe](https://github.com/szh101/Forever-companion-/releases/latest/download/ForeverAI-Setup-x64.exe)。** 运行一次安装向导即可安装桌面 Companion 和游戏 AddOn，已经包含 Python 运行环境和截图组件，无需下载源码或编译。
 
-- 打开[仓库首页](https://github.com/szh101/Forever-companion-)，选择 **Code → Download ZIP**，然后完整解压。
-- 只要游戏插件：使用解压目录中的 **`addon/ForeverAI`** 文件夹。
-- 需要 AI 聊天：还要按下面的 Windows 或 macOS 步骤启动 **Companion**；插件本身不连接 AI。
-- 使用 Git 的用户也可以克隆仓库：
+1. 运行 **`ForeverAI-Setup-x64.exe`**，选择简体中文或英文。
+2. 保持勾选安装 AddOn，选择**实际游玩的 Forever 客户端目录**，其中应包含 `Wow.exe` 或 `WowClassic.exe`。不要选择 Battle.net 启动器目录；只需要桌面助手也可以跳过 AddOn。
+3. 完成后，从开始菜单或桌面快捷方式打开 **Forever AI**。
+4. 下次完整启动游戏后，在插件列表启用 **Forever AI | Snapshot**，然后按下文[连接 AI](#3-连接-ai)和[开始提问](#4-开始提问)操作。
 
-```sh
-git clone https://github.com/szh101/Forever-companion-.git
-cd Forever-companion-
-```
+仍需使用你自己的模型账号或 API key；安装器不会代你登录或重启游戏。首个安装包尚未代码签名，Windows 可能显示未知发布者或信誉提示。
 
-`main` 源码已包含下文介绍的紧凑浮窗，以及截图、滚轮和焦点功能。
+更新 AddOn 时，安装器会将旧插件目录保存在客户端的 `Interface/ForeverAI-backups`。卸载 Companion 会保留游戏插件和这些备份。
 
-未来独立应用会在 [GitHub Releases](https://github.com/szh101/Forever-companion-/releases) 发布。现有打包脚本的文件名规则如下，**这些是将来识别下载文件的说明，并非已上线的下载项**：
+其他下载见 [Releases 页面](https://github.com/szh101/Forever-companion-/releases)：
 
-| 平台 | 独立应用文件名 | 解压后使用 |
-| --- | --- | --- |
-| Windows x64 | `ForeverAI-Windows-x64-<commit>.zip` | 保留整个 `Forever AI` 文件夹，运行其中的 `Forever AI.exe`；不能移走或删掉 `_internal`。包内 `addon/ForeverAI` 仍需复制到游戏目录。 |
-| macOS 14+ | `ForeverAI-macOS-<architecture>-<commit>.zip` | 选择匹配电脑架构的版本，打开 `Forever AI.app`；插件另从源码的 `addon/ForeverAI` 安装。现有 Mac 打包采用临时签名，未经过 Apple 公证。 |
+| 下载文件 | 用途 |
+| --- | --- |
+| **`ForeverAI-Setup-x64.exe`** | 推荐的 Windows 安装包，可同时安装 AddOn。 |
+| `ForeverAI-Windows-x64-<commit>.zip` | Windows 便携版；保留整个 `Forever AI` 文件夹，运行 `Forever AI.exe`，包内 AddOn 需要手动安装。 |
+| `ForeverAI-AddOn-*.zip` | 仅游戏插件；将 `ForeverAI` 解压到客户端的 `Interface/AddOns`。 |
+| `SHA256SUMS.txt` | 下载文件的校验值。 |
 
-独立应用包不需要 Python。GitHub 自动生成的 **Source code (zip / tar.gz)** 是源码，不是独立应用。
+**macOS：** 本次 Windows 发布不包含 Mac 安装包，请使用下方的 [macOS 源码步骤](#macos)。GitHub 的 **Code → Download ZIP** 和自动生成的 **Source code (zip / tar.gz)** 用于源码安装和开发。
 
 ## 1. 安装游戏插件
 
+**Windows 安装器可以代你完成这一步。** 下列手动步骤适用于便携版、仅插件和源码下载。
+
 1. 找到你实际启动的 **Forever 客户端**目录，再进入 `Interface/AddOns`。不要仅凭 `_retail_`、`_classic_` 或 `_classic_beta_` 文件夹名称判断版本。
-2. 将下载源码中的整个 **`addon/ForeverAI`** 文件夹复制进去。更新前可以先将旧插件移到游戏目录外备份。
+2. 将插件 ZIP 中的整个 **`ForeverAI`** 文件夹，或便携版／源码中的 **`addon/ForeverAI`** 复制进去。手动更新前可以先将旧插件移到游戏目录外备份。
 3. 确认结构如下，不能再多套一层文件夹：
 
 ```text
@@ -49,13 +50,20 @@ cd Forever-companion-
 4. **首次安装**请完全退出并重新启动游戏，在角色选择界面的插件列表中启用 **Forever AI | Snapshot**。已经加载该插件后再更新，通常可由你手动执行 `/reload`。
 5. 进入游戏，在非战斗状态输入 **`/fai`**。出现复制面板即表示插件已加载。
 
-启动 Companion 不会自动安装插件。若插件未显示，先核对客户端版本、路径和上述三个文件。
+若插件未显示，先核对所选客户端版本、路径和上述三个文件。单独启动 Companion 不会安装插件。
 
 ## 2. 启动桌面助手
 
-以下是**当前可以使用的源码安装方式**。首次安装依赖需要联网。
+**使用安装包的用户：** 从快捷方式打开 Forever AI，直接继续[连接 AI](#3-连接-ai)。下面的源码步骤对 Windows 是可选项；macOS 目前仍需使用。首次安装源码依赖需要联网。
 
-### Windows
+### Windows 源码安装（可选）
+
+使用 **Code → Download ZIP** 下载并解压源码，或用 Git 克隆：
+
+```sh
+git clone https://github.com/szh101/Forever-companion-.git
+cd Forever-companion-
+```
 
 1. 安装 [Python 3.11 或更新版本](https://www.python.org/downloads/windows/)，包含 **Tcl/Tk** 和 **Python launcher**。建议使用 x64 版本。
 2. 在完整解压的项目文件夹中双击 **`setup-windows.cmd`**，等待依赖安装完成。它会创建项目自己的 `.venv`。
@@ -71,7 +79,7 @@ cd Forever-companion-
 
 ### macOS
 
-需要带 **Tcl/Tk** 的 [Python 3.11 或更新版本](https://www.python.org/downloads/macos/)。在终端进入解压后的项目目录，运行：
+使用 **Code → Download ZIP** 下载并解压源码。需要带 **Tcl/Tk** 的 [Python 3.11 或更新版本](https://www.python.org/downloads/macos/)。在终端进入解压后的项目目录，运行：
 
 ```sh
 python3 -m venv .venv
@@ -148,7 +156,7 @@ uv run --locked python scripts/gui_smoke.py
 
 独立应用从固定 Git 提交构建：Windows 使用 `scripts/build_windows.py`，Mac 使用 `scripts/build_macos.py`，均需 `--commit FULL_COMMIT_SHA` 和对应平台工具链。构建产物与运行数据不提交 Git。
 
-当前源码通过了 154 项 Windows 自动化检查和隐藏窗口冒烟测试，另有 1 项依平台而定的检查跳过。这些检查没有操作运行中的游戏，也没有发送真实 AI 请求；最新的共享界面改动仍需在 macOS 上验证。
+发布源码通过了 155 项 Windows 自动化检查，1 项平台相关检查跳过，隐藏界面及打包应用检查通过。macOS 合约检查通过 150 项、跳过 6 项平台相关检查，原生截图组件编译通过。安装与升级检查使用虚构游戏目录；这些检查不涉及运行中的游戏、真实 AI 请求或 macOS 可见界面验收。
 
 - [架构与接口边界](docs/architecture.md)
 - [快照内容和限制](docs/snapshot.md)

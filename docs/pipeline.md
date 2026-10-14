@@ -81,3 +81,32 @@ on another computer. Report available signed/notarized packages honestly.
 Visible UI, real game capture, addon behavior and model requests require separate
 testing. Never infer those results from a build or hidden check. Release download
 instructions must match assets that have actually been uploaded.
+
+## Windows installer release
+
+The Windows installer bundles the checked application, Python runtime, native
+capture helper and AddOn. It supports English and Simplified Chinese, current-user
+installation and an optional game-client directory. It never launches or closes
+the game. Updates preserve the previous AddOn directory; Companion uninstall
+leaves the game AddOn and backups in place.
+
+`.github/workflows/windows-release.yml` runs when `release/windows.json` changes
+on `main`, or when explicitly dispatched on `main`. Increment the release revision
+for each new release attempt. The workflow uses a fresh macOS runner for Python/Lua
+contracts and native compilation, then a Windows runner for fixed-source checks,
+packaging, hidden executable tests, synthetic installation/update/uninstall and
+payload privacy scanning. It does not use a developer's installed application or
+credentials. Keep these checks as release dependencies.
+
+After `scripts/build_windows.py` succeeds, the Windows runner invokes
+`scripts/build_windows_installer.py --commit FULL_COMMIT_SHA --iscc PATH_TO_ISCC --test`.
+Inno Setup 6 is required. `--test` installs only into synthetic directories on an
+isolated CI runner; do not run installer acceptance tests on a user's active desktop.
+
+`scripts/release_windows.py` verifies the source revision, package hashes, installer
+test evidence and tag target. It uploads only the setup executable, portable ZIP,
+AddOn ZIP and `SHA256SUMS.txt` to a draft, then publishes after all four uploads are
+verified. Only the publishing command receives `GITHUB_TOKEN` as an environment
+variable; checkout disables credential persistence. Local build manifests and logs
+are excluded from downloads. Never overwrite
+an already published release; bump the revision instead.
